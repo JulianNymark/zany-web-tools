@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" data-color-scheme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zany Web Tools</title>
+<meta name="description" content="Small, single-purpose web tools. Static pages, no build step, no framework.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230062ba'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23fff' text-anchor='middle'>z</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vendor/designsystemet/designsystemet.css">
+<link rel="stylesheet" href="assets/vendor/designsystemet/theme.css">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="ds-skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap site-header__bar">
+    <a class="site-brand" href="./">
+      <span class="site-brand__mark" aria-hidden="true">z</span>
+      Zany Web Tools
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#tools" aria-current="page">Tools</a>
+      <a href="DESIGN.md">Design guide</a>
+      <a href="https://github.com/JulianNymark/zany-web-tools" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <section class="hero">
+      <h1 class="ds-heading" data-size="lg">Small tools, one job each</h1>
+      <p class="ds-paragraph" data-size="lg">
+        Static pages that do one thing and can be opened, forked or linked to.
+        No build step, no framework, no accounts — just HTML, CSS and a little
+        JavaScript, styled with <a class="ds-link" href="https://designsystemet.no/" rel="noopener">Designsystemet</a>.
+      </p>
+    </section>
+
+    <section class="section" id="tools" aria-labelledby="tools-heading">
+      <h2 class="ds-heading" data-size="sm" id="tools-heading">Tools</h2>
+
+      <div class="tool-grid">
+        <article class="ds-card tool-card">
+          <div class="ds-card__block stack">
+            <div class="tool-card__meta">
+              <span class="ds-tag" data-color="success">live</span>
+              <span class="ds-tag" data-variant="outline">map</span>
+            </div>
+            <h3 class="ds-heading" data-size="xs">Park &amp; tree coverage sampler</h3>
+            <p class="ds-paragraph">
+              Drop a pin and see how much of the square around it is parks and
+              woodland — the &ldquo;30&rdquo; of the 3-30-300 rule. Sample it as a
+              zoom square (neighbourhood, 5-minute walk) or a fixed buffer.
+            </p>
+          </div>
+          <div class="tool-card__spacer"></div>
+          <div class="ds-card__block tool-card__actions">
+            <a class="ds-button" href="tools/tree-coverage/">Open tool</a>
+            <a class="ds-link" href="tools/tree-coverage/README.md">How it works</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__row">
+    <span>Built with <a class="ds-link" href="https://designsystemet.no/" rel="noopener">Designsystemet</a> · hosted on GitHub Pages</span>
+    <span>Data on the tool pages comes from their own sources — see each page.</span>
+  </div>
+</footer>
+</body>
+</html>

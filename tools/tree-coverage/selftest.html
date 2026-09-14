@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>coverage selftest</title></head>
+<body>
+<pre id="out">running…</pre>
+<script src="mvt.js"></script>
+<script src="coverage.js"></script>
+<script>
+(async function () {
+  let TPL = null;
+  const tplReady = fetch('https://tiles.openfreemap.org/planet')
+    .then((r) => r.json())
+    .then((j) => { TPL = j.tiles[0]; });
+  const cache = new Map();
+  async function fetchTile(z, x, y, signal) {
+    await tplReady;
+    const k = z + '/' + x + '/' + y;
+    if (!cache.has(k)) {
+      cache.set(k, fetch(TPL.replace('{z}', z).replace('{x}', x).replace('{y}', y), { signal })
+        .then((r) => { if (!r.ok) throw new Error('tile ' + k + ' HTTP ' + r.status); return r.arrayBuffer(); }));
+    }
+    return cache.get(k);
+  }
+
+  const CASES = [
+    { name: 'vondelpark z18 centred', lat: 52.35813, lon: 4.86865, z: 18, grid: false, selected: ['parks', 'wood'] },
+    { name: 'vondelpark z16 centred', lat: 52.35813, lon: 4.86865, z: 16, grid: false, selected: ['parks', 'wood'] },
+    { name: 'vondelpark z14 grid tile', lat: 52.35813, lon: 4.86865, z: 14, grid: true, selected: ['parks', 'wood'] },
+    { name: 'amsterdamse bos z14 grid tile', lat: 52.3015, lon: 4.7975, z: 14, grid: true, selected: ['parks', 'wood'] },
+    { name: 'dam square z16 centred', lat: 52.3728, lon: 4.8936, z: 16, grid: false, selected: ['parks', 'wood'] },
+    { name: 'north sea z16 centred', lat: 52.5, lon: 3.5, z: 16, grid: false, selected: ['parks', 'wood'] },
+    { name: 'hoge veluwe z14 grid tile (trees)', lat: 52.08, lon: 5.83, z: 14, grid: true, selected: ['parks', 'wood'] },
+    { name: 'hoge veluwe z14 grid tile (all green)', lat: 52.08, lon: 5.83, z: 14, grid: true, selected: ['parks', 'wood', 'grass', 'gardens', 'wild', 'sport'] },
+    { name: 'z14 boundary centred (2 tiles)', lat: Coverage.worldYToLat(5389.5 / 16384), lon: 4.8779296875, z: 14, grid: false, selected: ['parks', 'wood'] },
+    { name: 'z300 metres centred, Vondelpark', lat: 52.35813, lon: 4.86865, meters: 300, selected: ['parks', 'wood'] },
+    { name: 'z300 metres centred, Dam', lat: 52.3728, lon: 4.8936, meters: 300, selected: ['parks', 'wood'] },
+  ];
+
+  const results = [];
+  const problems = [];
+
+  for (const c of CASES) {
+    const square = c.meters
+      ? Coverage.squareFromMeters(c.lat, c.lon, c.meters)
+      : Coverage.squareFromZoom(c.lat, c.lon, c.z, !c.grid);
+    const plan = Coverage.planSourceTiles(square);
+    const expectedTiles = plan.tiles.length;
+    const r = await Coverage.compute(square, { selected: c.selected, fetchTile });
+    const row = {
+      name: c.name,
+      percent: +r.percent.toFixed(2),
+      byCategory: Object.fromEntries(Object.entries(r.byCategory).map(([k, v]) => [k, +v.toFixed(2)])),
+      features: r.features,
+      sideM: +r.sideMeters.toFixed(1),
+      areaHa: +(r.areaM2 / 10000).toFixed(2),
+      tiles: plan.tiles.map((t) => t.z + '/' + t.x + '/' + t.y),
+      tileCount: expectedTiles,
+      names: r.names.slice(0, 6),
+      ms: Math.round(r.timing.totalMs),
+    };
+    results.push(row);
+
+    const nums = [row.percent, ...Object.values(row.byCategory)];
+    if (nums.some((n) => !Number.isFinite(n) || n < 0 || n > 100)) {
+      problems.push(row.name + ': percentage out of range ' + JSON.stringify(nums));
+    }
+    if (new Set(row.tiles).size !== row.tileCount) problems.push(row.name + ': duplicate tiles');
+    if (r.counts && Object.values(r.byCategory).some((v, i) => v > r.percent + 0.01 && Object.keys(r.byCategory)[i] !== undefined)) {
+      // per-category percentage may exceed the union because categories overlap; only >100 is a bug (checked above)
+    }
+  }
+
+  const byName = Object.fromEntries(results.map((r) => [r.name, r]));
+  const check = (label, ok) => { if (!ok) problems.push('CHECK FAILED: ' + label); };
+
+  check('vondelpark z18 mostly park', byName['vondelpark z18 centred'].byCategory.parks > 50);
+  check('vondelpark z16 park cover', byName['vondelpark z16 centred'].byCategory.parks > 20);
+  check('dam square is not 30% green', byName['dam square z16 centred'].percent < 30);
+  check('north sea has no woodland', byName['north sea z16 centred'].byCategory.wood === 0);
+  check('hoge veluwe has wood', byName['hoge veluwe z14 grid tile (trees)'].byCategory.wood > 20);
+  check('hoge veluwe has protected area polygons', byName['hoge veluwe z14 grid tile (trees)'].byCategory.parks > 0);
+  check('all-green >= trees-only', byName['hoge veluwe z14 grid tile (all green)'].percent >= byName['hoge veluwe z14 grid tile (trees)'].percent);
+  check('boundary square touches 2 data tiles', byName['z14 boundary centred (2 tiles)'].tileCount === 2);
+  check('vondelpark z14 grid tile is mostly not park', byName['vondelpark z14 grid tile'].percent < 60);
+  check('300 m in Vondelpark is green', byName['z300 metres centred, Vondelpark'].percent > 50);
+  check('grid tile == one tile', byName['vondelpark z14 grid tile'].tileCount === 1);
+
+  const out = {
+    ok: problems.length === 0,
+    problems,
+    results,
+  };
+  document.getElementById('out').textContent = JSON.stringify(out, null, 1);
+  window.__selftest = out;
+  window.__selftestDone = true;
+})().catch((e) => {
+  const out = { ok: false, problems: ['threw'], error: String((e && e.stack) || e) };
+  document.getElementById('out').textContent = JSON.stringify(out, null, 1);
+  window.__selftest = out;
+  window.__selftestDone = true;
+});
+</script>
+</body>
+</html>

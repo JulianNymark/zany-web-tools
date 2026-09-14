@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-color-scheme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Park &amp; tree coverage sampler — Zany Web Tools</title>
+<meta name="description" content="Sample how much of a square is parks and woodland: the 30% of the 3-30-300 rule. Zoom squares from city to city block, or a fixed buffer around a pin.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230062ba'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23fff' text-anchor='middle'>z</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../../assets/vendor/designsystemet/designsystemet.css">
+<link rel="stylesheet" href="../../assets/vendor/designsystemet/theme.css">
+<link rel="stylesheet" href="../../assets/vendor/maplibre/maplibre-gl.css">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="tool.css">
+</head>
+<body class="app-page">
+<a class="ds-skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap site-header__bar">
+    <a class="site-brand" href="../../">
+      <span class="site-brand__mark" aria-hidden="true">z</span>
+      Zany Web Tools
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../../">All tools</a>
+      <a href="../../DESIGN.md">Design guide</a>
+    </nav>
+  </div>
+</header>
+
+<main class="app-shell" id="main">
+  <div class="app-panel">
+    <div>
+      <h1 class="ds-heading" data-size="md">Park &amp; tree coverage</h1>
+      <p class="ds-paragraph">
+        How much of the square around the pin is green? Sample it as a zoom
+        square (neighbourhood, 5-minute walk, block) or a fixed buffer.
+      </p>
+    </div>
+
+    <!-- the answer first -->
+    <section class="ds-card" id="resultCard" aria-labelledby="result-heading">
+      <div class="ds-card__block">
+        <h2 class="ds-heading" data-size="2xs" id="result-heading">Coverage</h2>
+        <div class="verdict">
+          <div class="big" id="bigPercent">&ndash;</div>
+          <span class="ds-tag" id="badge" data-size="md">waiting</span>
+        </div>
+        <p class="ds-paragraph" id="resultMeta">Sampling&hellip;</p>
+        <div id="parkNames"></div>
+      </div>
+    </section>
+
+    <!-- counted area, hoisted up and labelled -->
+    <section class="ds-card" aria-labelledby="area-heading">
+      <div class="ds-card__block">
+        <h2 class="ds-heading" data-size="2xs" id="area-heading">Counted area</h2>
+        <div class="preview-frame">
+          <canvas id="preview" width="512" height="512" aria-label="Map of the sampled square, coloured by what was counted"></canvas>
+        </div>
+        <div class="legend" id="previewLegend"></div>
+      </div>
+    </section>
+
+    <section class="ds-card" aria-labelledby="square-heading">
+      <div class="ds-card__block stack">
+        <h2 class="ds-heading" data-size="2xs" id="square-heading">Square to sample</h2>
+        <div class="ds-field">
+          <label class="ds-label" for="size">Sample square</label>
+          <select class="ds-input" id="size"></select>
+        </div>
+        <div class="ds-field">
+          <input class="ds-input" type="checkbox" id="centerOnPin" checked>
+          <label class="ds-label" for="centerOnPin">Centre the square on the pin</label>
+        </div>
+        <p class="ds-paragraph" id="squareMeta"></p>
+      </div>
+    </section>
+
+    <section class="ds-card" aria-labelledby="cover-heading">
+      <div class="ds-card__block stack">
+        <h2 class="ds-heading" data-size="2xs" id="cover-heading">What counts as cover</h2>
+        <div id="categories" class="cat-list"></div>
+        <div class="cluster">
+          <button class="ds-button" id="presetTrees" type="button" data-variant="secondary" data-size="sm">Trees = parks + woods</button>
+          <button class="ds-button" id="presetGreen" type="button" data-variant="tertiary" data-size="sm">All green</button>
+        </div>
+        <div class="ds-field cluster" data-size="sm">
+          <label class="ds-label" for="threshold">Green threshold</label>
+          <input class="ds-input" id="threshold" type="number" min="0" max="100" step="1" value="30" style="max-width: 6rem">
+          <span class="ds-label" aria-hidden="true">%</span>
+        </div>
+      </div>
+    </section>
+
+    <details class="ds-details">
+      <summary>How it's made — and what it can't know</summary>
+      <div class="stack details-body">
+        <div class="ds-field">
+          <input class="ds-input" type="checkbox" id="showDataTiles">
+          <label class="ds-label" for="showDataTiles">Show the data-tile outlines (debug)</label>
+        </div>
+
+        <div>
+          <h3 class="ds-heading" data-size="2xs">Data &amp; limits</h3>
+          <ul class="ds-list">
+            <li>Vector tiles from <a class="ds-link" href="https://openfreemap.org/" rel="noopener">OpenFreeMap</a> (<a class="ds-link" href="https://openmaptiles.org/schema/" rel="noopener">OpenMapTiles schema</a>), which stops at zoom 14. A z16/z18 square is therefore z14 geometry, overzoomed — small patches disappear.</li>
+            <li>There is no tree-canopy layer. A park counts as fully covered, so <em>parks + woods</em> is an upper bound and <em>woods alone</em> is the conservative tree-only number.</li>
+            <li>Individual street trees are not in the data at all.</li>
+            <li>Marine protected areas are in the park layer, so a point at sea can score &ldquo;parks&rdquo;.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="ds-heading" data-size="2xs">Why these square sizes</h3>
+          <p class="ds-paragraph" id="sizeHint"></p>
+          <p class="ds-paragraph">
+            There is no official size for a &ldquo;neighbourhood&rdquo;. The 3-30-300
+            methods review (<a class="ds-link" href="https://doi.org/10.1016/j.scitotenv.2023.167739" rel="noopener">Browning et al. 2024</a>)
+            defines it either by administrative units or by a buffer around the
+            home, so the presets cover both: zoom squares for the first reading,
+            fixed buffers for the second. Anchors: Perry's
+            <a class="ds-link" href="https://en.wikipedia.org/wiki/Neighbourhood_unit" rel="noopener">neighbourhood unit</a>
+            is ~160 acres (~800 m across), a 5-minute walk is ~300-400 m, and the
+            Dutch average <a class="ds-link" href="https://www.cbs.nl/nl-nl/cijfers/detail/85984NED" rel="noopener">CBS buurt</a>
+            is ~244 ha (~1.6 km square).
+          </p>
+        </div>
+
+        <p class="ds-paragraph" id="techMeta"></p>
+        <p class="ds-paragraph" id="mapHealth"></p>
+        <p class="ds-paragraph">
+          Tiles <a class="ds-link" href="https://openfreemap.org/" rel="noopener">OpenFreeMap</a> ·
+          map data &copy; <a class="ds-link" href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors.
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="app-map">
+    <div id="map" class="app-map__canvas"></div>
+    <div id="mapNote" class="map-note" hidden></div>
+    <div id="status" class="status">Loading map&hellip;</div>
+
+    <form class="map-island" id="locateForm" data-size="sm" autocomplete="off">
+      <div class="ds-field">
+        <label class="ds-label" for="lat">Latitude</label>
+        <input class="ds-input" id="lat" type="number" step="0.00001" value="52.35813" inputmode="decimal">
+      </div>
+      <div class="ds-field">
+        <label class="ds-label" for="lon">Longitude</label>
+        <input class="ds-input" id="lon" type="number" step="0.00001" value="4.86865" inputmode="decimal">
+      </div>
+      <button class="ds-button" id="go" type="button">Move pin</button>
+      <button class="ds-button" id="locate" type="button" data-variant="secondary">Use my location</button>
+    </form>
+  </div>
+</main>
+
+<script src="../../assets/vendor/maplibre/maplibre-gl.js"></script>
+<script src="mvt.js"></script>
+<script src="coverage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

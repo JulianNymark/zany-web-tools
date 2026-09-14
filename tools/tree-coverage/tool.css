@@ -1,0 +1,206 @@
+/* ---------------------------------------------------------------------------
+   Park & tree coverage sampler — tool-specific styles.
+
+   Everything is built from Designsystemet tokens (--ds-*) so light and dark
+   mode both work. DS components carry the UI; this file only covers the parts
+   DS has no component for: the verdict, the chart legend, the floating map
+   island, the status pill and the map notices.
+   --------------------------------------------------------------------------- */
+
+/* ------------------------------------------------------------------ verdict */
+
+.verdict {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-size-3);
+  margin-top: var(--ds-size-2);
+}
+
+.big {
+  font-size: var(--ds-font-size-10);
+  font-weight: var(--ds-font-weight-semibold);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+#resultCard { border-left: 4px solid var(--ds-color-neutral-border-strong); }
+#resultCard.pass { border-left-color: var(--ds-color-success-base-default); }
+#resultCard.fail { border-left-color: var(--ds-color-danger-base-default); }
+
+/* --------------------------------------------------------------- categories */
+
+.cat-list { display: flex; flex-direction: column; gap: var(--ds-size-3); }
+
+.cat {
+  display: grid;
+  /* full width so every row's % column ends at the same x */
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) 4.5rem;
+  grid-template-areas:
+    "box label pct"
+    ".   hint  hint";
+  align-items: center;
+  gap: var(--ds-size-1) var(--ds-size-3);
+}
+
+.cat input { grid-area: box; }
+.cat .ds-label { grid-area: label; }
+.cat.on .ds-label { font-weight: var(--ds-font-weight-medium); }
+
+.cat-hint {
+  grid-area: hint;
+  font-size: var(--ds-font-size-2);
+  color: var(--ds-color-neutral-text-subtle);
+}
+
+.cat-pct {
+  grid-area: pct;
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--ds-font-weight-semibold);
+}
+
+.cat-pct[hidden] { display: none; }
+
+/* ------------------------------------------------------------ counted area */
+
+.preview-frame {
+  width: fit-content;
+  max-width: 100%;
+  margin: var(--ds-size-2) auto 0;
+  border: 1px solid var(--ds-color-neutral-border-subtle);
+  border-radius: var(--ds-border-radius-md);
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(var(--ds-color-neutral-surface-tinted) 0% 25%, var(--ds-color-neutral-surface-default) 0% 50%)
+    50% / 16px 16px;
+}
+
+#preview {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  image-rendering: pixelated;
+}
+
+.legend { display: flex; flex-direction: column; gap: var(--ds-size-2); margin-top: var(--ds-size-4); }
+
+.legend-row {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: var(--ds-size-3);
+  align-items: center;
+  font-size: var(--ds-font-size-3);
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgb(0 0 0 / 0.15);
+}
+
+.legend-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-color-neutral-text-subtle);
+}
+
+.legend-row.is-union {
+  padding-top: var(--ds-size-2);
+  border-top: 1px solid var(--ds-color-neutral-border-subtle);
+  font-weight: var(--ds-font-weight-semibold);
+}
+
+.legend-row.is-union .legend-pct { color: var(--ds-color-neutral-text-default); }
+
+/* ------------------------------------------------------------------- chips */
+
+.chips { display: flex; flex-wrap: wrap; gap: var(--ds-size-2); margin-top: var(--ds-size-3); }
+
+/* ------------------------------------------------------------------- notes */
+
+.details-body { padding-top: var(--ds-size-3); }
+
+/* -------------------------------------------------------------------- map */
+
+.status {
+  position: absolute;
+  top: var(--ds-size-3);
+  left: var(--ds-size-3);
+  z-index: 2;
+  max-width: calc(100% - calc(2 * var(--ds-size-3)));
+  padding: var(--ds-size-1) var(--ds-size-3);
+  border-radius: var(--ds-border-radius-full);
+  background: var(--ds-color-neutral-base-default);
+  color: var(--ds-color-neutral-base-contrast-default);
+  font-size: var(--ds-font-size-2);
+  box-shadow: var(--ds-shadow-sm);
+  pointer-events: none;
+}
+
+.status.error {
+  background: var(--ds-color-danger-base-default);
+  color: var(--ds-color-danger-base-contrast-default);
+}
+
+.map-note {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  max-width: min(460px, calc(100% - calc(2 * var(--ds-size-6))));
+  padding: var(--ds-size-4);
+  border: 1px solid var(--ds-color-neutral-border-default);
+  border-radius: var(--ds-border-radius-lg);
+  background: var(--ds-color-neutral-surface-default);
+  color: var(--ds-color-neutral-text-default);
+  box-shadow: var(--ds-shadow-lg);
+  font-size: var(--ds-font-size-3);
+  line-height: var(--ds-line-height-md);
+}
+
+.map-note[hidden] { display: none; }
+.map-note strong { display: block; margin-bottom: var(--ds-size-1); }
+
+/* ---------------------------------------------------------- floating island */
+
+.map-island {
+  position: absolute;
+  bottom: var(--ds-size-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-size-2);
+  align-items: flex-end;
+  /* absolute + left:50% shrinks to fit the remaining half; max-content fixes it */
+  width: max-content;
+  max-width: calc(100% - calc(2 * var(--ds-size-4)));
+  padding: var(--ds-size-3);
+  border: 1px solid var(--ds-color-neutral-border-subtle);
+  border-radius: var(--ds-border-radius-lg);
+  background: var(--ds-color-neutral-surface-default);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.map-island .ds-field { flex: 0 1 8rem; }
+.map-island .ds-input { width: 100%; }
+
+@media (max-width: 560px) {
+  .map-island {
+    left: var(--ds-size-3);
+    right: var(--ds-size-3);
+    bottom: var(--ds-size-8);
+    transform: none;
+  }
+
+  .map-island .ds-field { flex: 1 1 7rem; }
+}
