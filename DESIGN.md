@@ -8,12 +8,19 @@ Vendored, version-pinned copies live in `assets/vendor/designsystemet/`:
 
 | File | What |
 |---|---|
-| `designsystemet.css` | `@digdir/designsystemet-css` 1.21.1 — all components |
-| `theme.css` | `@digdir/designsystemet-theme` 1.11.0 — tokens, light/dark, `data-color` |
+| `designsystemet/designsystemet.css` | `@digdir/designsystemet-css` 1.21.1 — all components |
+| `designsystemet/theme.css` | `@digdir/designsystemet-theme` 1.11.0 — tokens, light/dark, `data-color` |
+| `mediapipe/vision_bundle.mjs` | `@mediapipe/tasks-vision` 1.0.1 — Face Landmarker JS API (loaded with a dynamic import) |
+| `mediapipe/wasm/` | `@mediapipe/tasks-vision` 1.0.1 — WASM backends, SIMD + no-SIMD (~11 MB each) |
+| `mediapipe/face_landmarker.task` | Face Landmarker model, float16/1 — 478 landmarks incl. iris |
 
-Do not edit the vendored files. To upgrade, re-download both from npm
-(`dist/src/index.css` and `dist/theme/designsystemet.css`) and update the
-version numbers here.
+Do not edit the vendored files. To upgrade the design system, re-download both
+files from npm (`dist/src/index.css` and `dist/theme/designsystemet.css`) and
+update the version numbers here. To upgrade MediaPipe, re-download
+`vision_bundle.mjs` and both `wasm/` backends from
+`@mediapipe/tasks-vision@<version>` on npm, the model from the MediaPipe model
+repository, and update the version numbers here (see
+`tools/webcam-eye-tracking/README.md`).
 
 ## The include block
 

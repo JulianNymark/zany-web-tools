@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en" data-color-scheme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webcam eye tracking — Zany Web Tools</title>
+<meta name="description" content="On-device gaze estimation from a plain webcam. Pop a deterministic, repeatable grid of bubbles with your eyes, and compare the browser eye-tracking libraries that make it possible.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230062ba'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23fff' text-anchor='middle'>z</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="../../assets/vendor/designsystemet/designsystemet.css">
+<link rel="stylesheet" href="../../assets/vendor/designsystemet/theme.css">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="tool.css">
+</head>
+<body>
+<a class="ds-skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap site-header__bar">
+    <a class="site-brand" href="../../">
+      <span class="site-brand__mark" aria-hidden="true">z</span>
+      Zany Web Tools
+    </a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="../../">All tools</a>
+      <a href="../../DESIGN.md">Design guide</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap tool-wrap">
+    <section class="ds-card intro-card" id="intro" aria-labelledby="intro-heading">
+      <div class="ds-card__block stack">
+        <p class="eyebrow">On-device &middot; nothing is uploaded</p>
+        <h1 class="ds-heading" data-size="lg" id="intro-heading">Look where you look</h1>
+        <p class="ds-paragraph" data-size="lg">
+          Gaze estimation from an ordinary webcam, running in the browser. Calibrate
+          to nine points, then pop a <strong>deterministic grid of bubbles</strong> with
+          your eyes &mdash; same layout and sizes every run, so you can compare
+          attempts or trackers.
+        </p>
+
+        <div class="cluster intro-actions">
+          <button class="ds-button" id="btnStart" type="button">Enable camera &amp; load model</button>
+          <div class="ds-field" data-size="sm">
+            <label class="ds-label" for="gridSize">Bubble grid</label>
+            <select class="ds-input" id="gridSize">
+              <option value="3">3 &times; 3</option>
+              <option value="4">4 &times; 4</option>
+              <option value="5" selected>5 &times; 5</option>
+            </select>
+          </div>
+          <div class="ds-field" data-size="sm">
+            <label class="ds-label" for="dwell">Dwell to pop</label>
+            <select class="ds-input" id="dwell">
+              <option value="0.45">Fast (0.45 s)</option>
+              <option value="0.65" selected>Normal (0.65 s)</option>
+              <option value="1">Slow (1 s)</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="ds-paragraph muted" id="introStatus" role="status">Idle. The model is vendored locally and loads only when you press start.</p>
+      </div>
+    </section>
+
+    <section class="ds-card" aria-labelledby="compare-heading">
+      <div class="ds-card__block">
+        <h2 class="ds-heading" data-size="sm" id="compare-heading">Other ways to eye-track the browser</h2>
+        <p class="ds-paragraph">
+          This page runs <strong>MediaPipe Face Landmarker</strong>. The field has a few
+          alternatives that trade accuracy, maintenance and licence differently.
+          Expand an entry for the detail; star counts are pulled live from GitHub.
+        </p>
+        <div id="comparator" class="tracker-list">
+          <noscript><p class="ds-paragraph">Enable JavaScript to load the comparison, or browse the repos linked in the README.</p></noscript>
+        </div>
+        <p class="ds-paragraph muted" id="compareNote"></p>
+      </div>
+    </section>
+
+    <details class="ds-details">
+      <summary>How it works &mdash; and what it can&rsquo;t know</summary>
+      <div class="stack details-body">
+        <div>
+          <h2 class="ds-heading" data-size="2xs">The pipeline</h2>
+          <ul class="ds-list">
+            <li><a class="ds-link" href="https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker" rel="noopener">MediaPipe Face Landmarker</a> returns 478 face landmarks per frame, including 8 iris points. It runs on-device (GPU, falling back to CPU) via a WebAssembly bundle.</li>
+            <li>From each frame we build a small feature vector: horizontal/vertical iris ratios per eye, head yaw/pitch/roll, face scale, and the combined iris offset.</li>
+            <li>Nine calibration points gather samples; a <strong>ridge regression</strong> (fit in-page, not a neural net) maps features to screen coordinates.</li>
+            <li>Predictions are smoothed and drawn as a gaze dot with a short trail. A bubble pops once your gaze dwells inside it long enough.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="ds-heading" data-size="2xs">The repeatable test</h2>
+          <p class="ds-paragraph">
+            Bubbles are laid out on a fixed grid. Positions come from the viewport and
+            the grid size; bubble <em>sizes increase</em> in a fixed order from the
+            smallest to the largest. No randomness &mdash; a run with the same window
+            size and grid setting is identical every time. The HUD reports targets
+            left, elapsed time, hits and the calibration error in pixels.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="ds-heading" data-size="2xs">Privacy</h2>
+          <p class="ds-paragraph">
+            Video never leaves the machine: the model is vendored in
+            <code>assets/vendor/mediapipe/</code> and inference happens in your browser.
+            The camera stream is stopped when you press stop or leave the page. The only
+            network request is the optional live star count from the GitHub API.
+          </p>
+        </div>
+
+        <div>
+          <h2 class="ds-heading" data-size="2xs">Limits &amp; requirements</h2>
+          <ul class="ds-list">
+            <li>Needs a <strong>secure context</strong>: it works over HTTPS or <code>localhost</code>. Opening the file directly (<code>file://</code>) blocks the camera and the WebAssembly module.</li>
+            <li>You need to serve the folder &mdash; the site does this on GitHub Pages; locally run <code>python3 -m http.server</code> from the repo root.</li>
+            <li>Sit roughly 50&ndash;70&nbsp;cm from the screen, face lit from the front, and keep your head fairly still.</li>
+            <li>Accuracy depends on your webcam, glasses and lighting. Expect centimetres, not millimetres.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="ds-heading" data-size="2xs">Tech used</h2>
+          <ul class="ds-list">
+            <li><a class="ds-link" href="https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker" rel="noopener">MediaPipe Face Landmarker</a> (<a class="ds-link" href="https://www.npmjs.com/package/@mediapipe/tasks-vision" rel="noopener">@mediapipe/tasks-vision</a> 1.0.1, Apache-2.0)</li>
+            <li><a class="ds-link" href="https://designsystemet.no/" rel="noopener">Designsystemet</a> for UI and tokens</li>
+            <li>Calibration and feature extraction are plain JavaScript, ported from a standalone demo</li>
+          </ul>
+        </div>
+
+        <p class="ds-paragraph">
+          See <a class="ds-link" href="README.md">the README</a> for the full write-up
+          and the vendored file list.
+        </p>
+      </div>
+    </details>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap site-footer__row">
+    <span>Built with <a class="ds-link" href="https://designsystemet.no/" rel="noopener">Designsystemet</a> &middot; hosted on GitHub Pages</span>
+    <span>Runs <a class="ds-link" href="https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker" rel="noopener">MediaPipe Face Landmarker</a> entirely on-device.</span>
+  </div>
+</footer>
+
+<div id="game" class="game" hidden>
+  <div class="game-bar">
+    <div class="game-bar__left">
+      <span class="game-title">Gaze grid</span>
+      <span class="game-status" id="status" role="status">Idle</span>
+    </div>
+    <div class="game-bar__controls">
+      <select id="camPicker" class="ds-input cam-picker" hidden title="Camera" aria-label="Camera"></select>
+      <button class="ds-button" data-size="sm" id="btnCalibrate" type="button" disabled>Calibrate</button>
+      <button class="ds-button" data-size="sm" data-variant="secondary" id="btnToggleCam" type="button" disabled>Hide camera</button>
+      <button class="ds-button" data-size="sm" data-variant="danger" id="btnStop" type="button" disabled>Stop</button>
+    </div>
+  </div>
+
+  <div class="hud" id="hud">
+    <span>Targets <b id="hudLeft">&ndash;</b></span>
+    <span>Time <b id="hudTime">0.0 s</b></span>
+    <span>Hits <b id="hudScore">0</b></span>
+    <span>Error <b id="hudErr">&ndash;</b></span>
+  </div>
+
+  <div id="stage" class="stage"></div>
+  <canvas id="gazeOverlay" class="gaze-overlay" aria-label="Gaze position overlay"></canvas>
+
+  <div id="preview" class="preview" hidden>
+    <div class="preview__vid">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="previewCanvas"></canvas>
+    </div>
+    <div class="preview__bar">
+      <span>Face <b id="faceState">&mdash;</b></span>
+      <span id="fps">&mdash; fps</span>
+    </div>
+  </div>
+
+  <div id="calib" class="calib">
+    <div class="calib__hint" id="calibHint"></div>
+  </div>
+  <div id="calibPoints" class="calib-points"></div>
+
+  <div id="summary" class="summary" hidden>
+    <div class="ds-card summary__card">
+      <div class="ds-card__block stack">
+        <h2 class="ds-heading" data-size="sm" id="summaryHeading">Grid cleared</h2>
+        <dl class="summary__stats">
+          <div><dt>Targets</dt><dd id="sumTargets">&ndash;</dd></div>
+          <div><dt>Hits</dt><dd id="sumHits">&ndash;</dd></div>
+          <div><dt>Time</dt><dd id="sumTime">&ndash;</dd></div>
+          <div><dt>Calibration error</dt><dd id="sumErr">&ndash;</dd></div>
+        </dl>
+        <div class="cluster">
+          <button class="ds-button" id="btnRepeat" type="button">Run again</button>
+          <button class="ds-button" data-variant="secondary" id="btnSummaryStop" type="button">Stop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="alternatives.js" defer></script>
+<script src="app.js" defer></script>
+</body>
+</html>
