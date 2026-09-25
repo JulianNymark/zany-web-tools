@@ -116,6 +116,13 @@
   line-height: var(--ds-line-height-md);
 }
 
+.tracker__tech {
+  margin: 0 0 var(--ds-size-3);
+  font-size: var(--ds-font-size-3);
+  font-weight: var(--ds-font-weight-medium);
+  color: var(--ds-color-accent-text-subtle);
+}
+
 .tracker__row {
   display: grid;
   grid-template-columns: 8.5rem 1fr;
@@ -197,11 +204,38 @@ body.game-open { overflow: hidden; }
   flex-wrap: wrap;
 }
 
+.game-tracker {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-size-2);
+}
+
+.game-label {
+  font-size: var(--ds-font-size-2);
+  color: var(--ds-color-neutral-text-subtle);
+}
+
+.game-tech {
+  flex-basis: 100%;
+  font-size: var(--ds-font-size-2);
+  color: var(--ds-color-neutral-text-subtle);
+}
+
 .cam-picker { max-width: 14rem; }
+
+.game-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-size-2);
+  font-size: var(--ds-font-size-2);
+  color: var(--ds-color-neutral-text-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+}
 
 .hud {
   position: absolute;
-  top: 76px;
+  bottom: var(--ds-size-4);
   left: var(--ds-size-4);
   z-index: 25;
   display: flex;
@@ -227,6 +261,8 @@ body.game-open { overflow: hidden; }
 .gaze-overlay {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 20;
   pointer-events: none;
 }
@@ -303,6 +339,29 @@ body.game-open { overflow: hidden; }
 
 .preview__bar b { color: var(--ds-color-neutral-text-default); }
 
+/* WebGazer injects its own fixed video container; park it where our preview
+   sits so the two trackers feel the same. */
+#webgazerVideoContainer {
+  top: auto !important;
+  left: auto !important;
+  right: var(--ds-size-4) !important;
+  bottom: var(--ds-size-4) !important;
+  z-index: 25 !important;
+  width: auto !important;
+  height: auto !important;
+  border: 1px solid var(--ds-color-neutral-border-subtle);
+  border-radius: var(--ds-border-radius-lg);
+  overflow: hidden;
+  background: var(--ds-color-neutral-base-default);
+  box-shadow: var(--ds-shadow-lg);
+}
+
+#webgazerVideoFeed {
+  width: 260px !important;
+  height: auto !important;
+  display: block;
+}
+
 /* ------------------------------------------------------------ calibration */
 
 .calib {
@@ -310,16 +369,20 @@ body.game-open { overflow: hidden; }
   inset: 0;
   z-index: 40;
   display: none;
-  place-items: center;
+  place-items: start center;
   text-align: center;
-  padding: var(--ds-size-6);
-  background: color-mix(in srgb, var(--ds-color-neutral-background-default) 94%, transparent);
+  padding: 18vh var(--ds-size-6) var(--ds-size-6);
+  background: transparent;
 }
 
 .calib.on { display: grid; }
 
 .calib__hint {
   max-width: 52ch;
+  padding: var(--ds-size-3) var(--ds-size-4);
+  border-radius: var(--ds-border-radius-md);
+  background: color-mix(in srgb, var(--ds-color-neutral-background-default) 90%, transparent);
+  box-shadow: var(--ds-shadow-sm);
   color: var(--ds-color-neutral-text-subtle);
   font-size: var(--ds-font-size-4);
   line-height: var(--ds-line-height-lg);
@@ -337,16 +400,25 @@ body.game-open { overflow: hidden; }
 }
 
 .calpoint__dot {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--ds-color-neutral-text-default);
-  box-shadow: 0 0 22px var(--ds-color-accent-base-default);
+  background: var(--ds-color-danger-base-default);
+  box-shadow: 0 0 0 3px var(--ds-color-neutral-background-default), 0 0 24px var(--ds-color-danger-base-default);
 }
 
-.calpoint.active .calpoint__dot { background: var(--ds-color-accent-base-default); }
+.calpoint.active .calpoint__dot {
+  background: var(--ds-color-danger-base-hover);
+  animation: calpoint-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes calpoint-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
 .calpoint svg { position: absolute; overflow: visible; }
-.calpoint circle { fill: none; stroke: var(--ds-color-warning-base-default); stroke-width: 3; stroke-linecap: round; }
+.calpoint circle { fill: none; stroke: var(--ds-color-danger-base-default); stroke-width: 3; stroke-linecap: round; }
 
 /* ---------------------------------------------------------------- summary */
 
@@ -390,5 +462,6 @@ body.game-open { overflow: hidden; }
 }
 
 @media (max-width: 560px) {
-  .hud { top: 120px; }
+  .preview { bottom: 96px; }
+  #webgazerVideoContainer { bottom: 96px !important; right: var(--ds-size-2) !important; }
 }

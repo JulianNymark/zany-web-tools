@@ -1,86 +1,97 @@
 /* Comparator: the browser eye-tracking libraries we considered.
-   Baked counts are a snapshot; live values are fetched (and cached) from the
-   GitHub API on load. Entries without a repo are commercial/hosted SDKs. */
+   `tech` is the one-line label shown in the dropdown/subtitle; `integrated`
+   means it can actually be selected in the toolbar. Baked counts are a
+   snapshot; live values are fetched (and cached) from the GitHub API. */
 
 const SNAPSHOT_DATE = '2026-09-25';
 
 const ALTERNATIVES = [
   {
     name: 'MediaPipe Face Landmarker',
-    used: true,
+    tech: 'Neural net · WebAssembly · iris landmarks',
+    integrated: true,
     repo: 'google-ai-edge/mediapipe',
     demo: 'https://mediapipe-studio.webapps.google.com/',
     license: 'Apache-2.0',
-    approach: 'Landmark neural net (478 pts incl. iris) + our own regression',
-    note: 'What this page runs. Iris landmarks are precise and it is actively maintained; you bring your own calibration. The npm bundle (tasks-vision) is small even though the repo is huge.',
+    approach: '478-point face model (incl. iris) + our own ridge regression',
+    note: 'Precise iris landmarks, and you bring the calibration. Note that FaceLandmarker\u2019s iris landmarks are known to be weaker than the older FaceMesh refine pass for gaze, so a constant offset can remain. Actively maintained.',
     stars: 37072,
     pushed: '2026-09-25',
   },
   {
+    name: 'clmtrackr',
+    tech: 'Classic CV · no ML · no iris',
+    integrated: true,
+    repo: 'auduno/clmtrackr',
+    demo: 'https://www.auduno.com/clmtrackr/examples/',
+    license: 'MIT',
+    approach: 'Constrained local models (regularized landmark mean-shift)',
+    note: 'Tiny and dependency-free, but head-pose-only gaze and unmaintained since 2020.',
+    stars: 6498,
+    pushed: '2020-01-10',
+  },
+  {
     name: 'WebGazer.js',
+    tech: 'Regression \u00b7 TF.js + MediaPipe \u00b7 self-trained from dots',
+    integrated: true,
     repo: 'brownhci/WebGazer',
     demo: 'https://webgazer.cs.brown.edu/',
-    license: 'Custom (non-commercial)',
-    approach: 'Pixel-feature regression, trained live from your clicks',
-    note: 'No model to download and it self-calibrates from ordinary clicks (often paired with jsPsych for studies). Older codebase, lower accuracy and visibly jittery.',
+    license: 'GPL-3.0-or-later',
+    approach: 'Pixel-feature regression, trained live from your calibration samples',
+    note: 'Runs here too. It owns the camera and self-calibrates from the dots; the script and face-mesh assets are fetched from jsDelivr, so the video still never leaves the page.',
     stars: 3897,
     pushed: '2026-02-24',
   },
   {
     name: 'TensorFlow.js face-landmarks-detection',
+    tech: 'Neural net · TF.js WebGL · no iris',
     repo: 'tensorflow/tfjs-models',
     demo: 'https://github.com/tensorflow/tfjs-models/tree/master/face-landmarks-detection',
     license: 'Apache-2.0',
-    approach: 'MediaPipe FaceMesh ported to the TF.js runtime (468 pts, no iris)',
-    note: 'Useful if you already load TensorFlow.js. Slower than the native WebAssembly path and lacks iris landmarks, so gaze is coarser.',
+    approach: 'MediaPipe FaceMesh ported to the TF.js runtime (468 pts)',
+    note: 'Useful if you already load TF.js; slower and coarser than the WebAssembly path.',
     stars: 14812,
     pushed: '2026-06-23',
   },
   {
     name: 'face-api.js',
+    tech: 'Neural net · TF.js · unmaintained',
     repo: 'justadudewhohacks/face-api.js',
     demo: 'https://justadudewhohacks.github.io/face-api.js/',
     license: 'MIT',
-    approach: 'SSD face detection + landmark CNNs on TF.js',
-    note: 'Very popular and easy to start with, but effectively unmaintained since 2024. The community fork (@vladmandic/face-api) has since been archived as well.',
+    approach: 'SSD detection + landmark CNNs on TF.js',
+    note: 'Popular and easy, but effectively unmaintained since 2024.',
     stars: 17967,
     pushed: '2024-01-24',
   },
   {
     name: 'ml5.js faceMesh',
+    tech: 'Wrapper · neural net · teaching',
     repo: 'ml5js/ml5-library',
     demo: 'https://docs.ml5js.org/#/reference/facemesh',
     license: 'Custom / MIT-style',
     approach: 'Friendly wrapper around MediaPipe FaceMesh',
-    note: 'Best for teaching and creative coding. Less control over the raw landmarks and an extra abstraction over the same model this page uses directly.',
+    note: 'Made for teaching and creative coding; an extra abstraction over this same model.',
     stars: 6583,
     pushed: '2024-10-11',
   },
   {
-    name: 'clmtrackr',
-    repo: 'auduno/clmtrackr',
-    demo: 'https://www.auduno.com/clmtrackr/examples/',
-    license: 'MIT',
-    approach: 'Constrained local models (classic CV, no neural net)',
-    note: 'Tiny and dependency-free, and it ran without WebAssembly years before the others. No iris points and no longer maintained (last push 2020).',
-    stars: 6498,
-    pushed: '2020-01-10',
-  },
-  {
     name: 'SeeSo / Eyedid web SDK',
+    tech: 'Commercial · hosted model',
     repo: null,
     demo: 'https://eyedid.com/',
     license: 'Commercial',
     approach: 'Hosted gaze model + calibration service',
-    note: 'No ML plumbing on your side and strong out-of-the-box accuracy. Closed source, paid and usage-limited, and the model runs off-site or under a contract.',
+    note: 'Strong out-of-the-box accuracy, but closed source, paid and usage-limited.',
   },
   {
     name: 'GazeCloudAPI',
+    tech: 'Commercial · hosted script',
     repo: null,
     demo: 'https://gazerecorder.com/gazecloudapi/',
     license: 'Commercial / freemium',
-    approach: 'Hosted webcam gaze tracking via a drop-in script',
-    note: 'Fastest to integrate if you accept a hosted service. You do not control the model, and privacy and longevity depend on the vendor.',
+    approach: 'Drop-in hosted webcam gaze tracking',
+    note: 'Fastest to integrate if you accept a hosted service you do not control.',
   },
 ];
 
@@ -133,9 +144,9 @@ function render() {
     const details = el('details', 'tracker');
     if (i === 0) details.open = true;
 
-    const summary = el('summary', 'tracker__head');
+    const summary = el('summary');
     summary.appendChild(el('span', 'tracker__name', item.name));
-    if (item.used) summary.appendChild(el('span', 'tracker__used', 'used here'));
+    if (item.integrated) summary.appendChild(el('span', 'tracker__used', 'runs here'));
 
     const stars = el('span', 'tracker__stars', starsLabel(item));
     if (item.repo) {
@@ -147,6 +158,8 @@ function render() {
     details.appendChild(summary);
 
     const body = el('div', 'tracker__body');
+    body.appendChild(el('p', 'tracker__tech', item.tech));
+
     const dl = el('dl', 'tracker__row');
     const rows = [];
     if (item.repo) rows.push(['Repo', repoUrl(item.repo), item.repo]);
@@ -222,9 +235,8 @@ async function hydrateStars() {
 function note() {
   const node = document.getElementById('compareNote');
   if (!node) return;
-  node.textContent = 'Star counts and last-push dates come from the GitHub API on load '
-    + '(cached for an hour). If the request is blocked, a ' + SNAPSHOT_DATE
-    + ' snapshot is shown instead. Commercial SDKs have no public repo.';
+  node.textContent = 'Stars and last-push dates come from the GitHub API on load '
+    + '(cached for an hour); a ' + SNAPSHOT_DATE + ' snapshot is shown if the request is blocked.';
 }
 
 render();

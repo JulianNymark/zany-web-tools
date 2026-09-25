@@ -4,22 +4,27 @@ Everything here follows [Designsystemet](https://designsystemet.no/) — the
 Norwegian public sector design system (Digdir). We use the **CSS-only** build:
 design system classes on plain HTML elements, no React, no build step.
 
-Vendored, version-pinned copies live in `assets/vendor/designsystemet/`:
+Vendored, version-pinned third-party code lives in `assets/vendor/`:
 
 | File | What |
 |---|---|
 | `designsystemet/designsystemet.css` | `@digdir/designsystemet-css` 1.21.1 — all components |
 | `designsystemet/theme.css` | `@digdir/designsystemet-theme` 1.11.0 — tokens, light/dark, `data-color` |
+| `maplibre/` | MapLibre GL JS/CSS — used by the tree-coverage tool |
 | `mediapipe/vision_bundle.mjs` | `@mediapipe/tasks-vision` 1.0.1 — Face Landmarker JS API (loaded with a dynamic import) |
 | `mediapipe/wasm/` | `@mediapipe/tasks-vision` 1.0.1 — WASM backends, SIMD + no-SIMD (~11 MB each) |
 | `mediapipe/face_landmarker.task` | Face Landmarker model, float16/1 — 478 landmarks incl. iris |
+| `clmtrackr/clmtrackr.min.js` | `clmtrackr` 1.1.2 — classic constrained-local-models tracker (model bundled) |
+
+One deliberate exception: **WebGazer.js 3.5.3** (GPL-3.0-or-later) is loaded from
+jsDelivr at runtime, together with the MediaPipe face-mesh assets it needs
+(~12 MB total), rather than vendored — see `tools/webcam-eye-tracking/README.md`.
+Its webcam frames are still processed entirely on-device.
 
 Do not edit the vendored files. To upgrade the design system, re-download both
 files from npm (`dist/src/index.css` and `dist/theme/designsystemet.css`) and
-update the version numbers here. To upgrade MediaPipe, re-download
-`vision_bundle.mjs` and both `wasm/` backends from
-`@mediapipe/tasks-vision@<version>` on npm, the model from the MediaPipe model
-repository, and update the version numbers here (see
+update the version numbers here. To upgrade MediaPipe or clmtrackr, re-download
+the files from their npm packages and update the version numbers here (see
 `tools/webcam-eye-tracking/README.md`).
 
 ## The include block
@@ -105,7 +110,9 @@ the page's own stylesheet, built from `--ds-*` variables so light/dark both work
    `index.html`. Keep the tool's own CSS in `tools/<name>/tool.css`.
 3. **No dependencies except vendored ones.** No npm install, no bundler, no
    framework. Vanilla JS in a plain `<script>` (no ES modules at the top level
-   if you want the page to work from `file://`).
+   if you want the page to work from `file://`). A heavy, license-encumbered
+   library may instead be loaded from a pinned CDN if vendoring it is not
+   sensible — currently only WebGazer.js, documented in its tool README.
 4. **Content before decoration.** The answer a visitor came for (a number, a
    result) goes at the top of the page; method notes, data sources and
    caveats go inside a `<details class="ds-details">` at the bottom.

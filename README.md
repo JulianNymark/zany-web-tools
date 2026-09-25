@@ -10,7 +10,7 @@ no accounts. Styled with [Designsystemet](https://designsystemet.no/).
 | Tool | What it does |
 |---|---|
 | [`tools/tree-coverage/`](tools/tree-coverage/) | Park & tree coverage sampler — the "30" of the 3-30-300 rule, sampled per square |
-| [`tools/webcam-eye-tracking/`](tools/webcam-eye-tracking/) | Pop bubbles with your gaze — on-device webcam eye tracking (MediaPipe Face Landmarker) |
+| [`tools/webcam-eye-tracking/`](tools/webcam-eye-tracking/) | Pop a deterministic grid of bubbles with your gaze — on-device webcam eye tracking, swap between MediaPipe, clmtrackr and WebGazer.js |
 
 ## Layout
 
@@ -18,7 +18,7 @@ no accounts. Styled with [Designsystemet](https://designsystemet.no/).
 index.html                 hub — one card per tool
 DESIGN.md                  design guide: shell, components, rules, checklist
 assets/site.css            shared shell (header, footer, hub grid, app layout)
-assets/vendor/             pinned third-party CSS/JS (designsystemet, maplibre, mediapipe)
+assets/vendor/             pinned third-party CSS/JS (designsystemet, maplibre, mediapipe, clmtrackr; WebGazer loads from CDN)
 tools/<name>/index.html    one folder per tool, entry point
 ```
 
