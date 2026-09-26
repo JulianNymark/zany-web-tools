@@ -1,13 +1,13 @@
 /* ---------------------------------------------------------------------------
-   Bus stop golf — tool-specific styles.
+   Bus stop golf: tool-specific styles.
 
    Built from Designsystemet tokens so light and dark mode both work. The only
-   hard colour is Ruter red (#E60000) — the official city-network line colour.
+   hard colour is Ruter red (#E60000), the official city-network line colour.
    --------------------------------------------------------------------------- */
 
 #map { background: var(--ds-color-neutral-background-default); }
 
-/* hide vector paths during zoom animations — they're transform-scaled mid-flight
+/* hide vector paths during zoom animations: they're transform-scaled mid-flight
    (pixelated); app.js toggles .zooming on zoomstart/zoomend, so they fade back */
 .leaflet-overlay-pane svg { transition: opacity 0.18s ease; }
 #map.zooming .leaflet-overlay-pane svg { opacity: 0; }
@@ -147,7 +147,7 @@
 
 /* --------------------------------------------------------- position pulse */
 
-/* DOM stop dot — constant size through zooms (SVG vectors would balloon) */
+/* DOM stop dot: constant size through zooms (SVG vectors would balloon) */
 .stop-dot {
   width: 15px; height: 15px; box-sizing: border-box;
   border-radius: 50%;

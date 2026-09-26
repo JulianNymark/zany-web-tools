@@ -4,19 +4,19 @@ How close together can two consecutive stops on an Oslo city bus line be?
 The 30 shortest hops, measured along the road the bus actually drives.
 
 - **Live page:** <https://juliannymark.github.io/zany-web-tools/tools/busstop-golf/>
-- **Data:** Entur JourneyPlanner v3 (Ruter network) — stops, line stop
+- **Data:** Entur JourneyPlanner v3 (Ruter network) for stops, line stop
   sequences and per-leg drive-path geometry (`stopToStopGeometries` +
   `pointsOnLink`), generated 2026-09-26
 - **Distance:** length of the decoded drive-path polyline between the two
   quays (the API's own length field is a placeholder, don't trust it)
-- **Scope:** 1–2-digit Ruter route numbers only (city network: 20, 30, 37, 54, 81…),
-  both stops inside a generous Oslo box (Bygdøy to Grorud) → 809 unique pairs over 668 stops
+- **Scope:** 2-digit Ruter route numbers only (city network: 20, 30, 37, 54, 81…),
+  the same lines as Ruter's own Oslo bus tables → 814 unique pairs over 672 stops
 
 ## Files
 
 | File | What |
 |---|---|
-| `index.html` | page: leaderboard, pick-two game, live position, map |
+| `index.html` | page: leaderboard, pick-two explorer, live position, map |
 | `data.js` | generated dataset (pairs, geometry, adjacency, positions) |
 | `app.js` | map + interactions, plain script, no modules |
 | `tool.css` | tool-specific styles, built from `--ds-*` tokens |
@@ -41,5 +41,5 @@ refresh the data; do not edit `data.js` by hand.
   Carl Berners plass T, Jernbanetorget → Kvadraturen): real distinct stops,
   same place to a human.
 - Marker dots sit on the drive-path's own endpoints (direction-true quays),
-  not the stop-place centroid — the two can be a block apart.
+  not the stop-place centroid; the two can be a block apart.
 - Geolocation requires HTTPS (GitHub Pages is fine, `file://` is not).

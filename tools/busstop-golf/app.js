@@ -1,10 +1,10 @@
-/* Bus stop golf — map, leaderboard, pick-two game, live position.
+/* Bus stop golf: map, leaderboard, pick-two explorer, live position.
    Plain script (no modules) so it also runs from file://.
    Globals DATA, PAIRS, ADJ, POS come from data.js. */
 
 const RANK_POOL = 30; // "you are close to" hunts among the 30 shortest pairs
 const RUTER_RED = '#E60000'; // official Ruter city-network colour
-const CITY_VIEW = L.latLngBounds([59.892, 10.62], [59.95, 10.88]); // Frogner–Økern-ish
+const CITY_VIEW = L.latLngBounds([59.892, 10.62], [59.95, 10.88]); // Frogner to Økern-ish
 
 const map = L.map('map', { zoomControl: false }).setView([59.92, 10.75], 12);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -14,8 +14,8 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 map.fitBounds(CITY_VIEW, { maxZoom: 13 });
 
-// vectors get transform-scaled mid-zoom (pixelated) — hide while zooming, fade back
-// hide vectors only during *programmatic* zooms — transform-scaling mid-flight
+// vectors get transform-scaled mid-zoom (pixelated): hide while zooming, fade back
+// hide vectors only during *programmatic* zooms; transform-scaling mid-flight
 // looks pixelated. Manual wheel/pinch zoom keeps them visible.
 let autoZoom = false;
 const fly = (fn) => { autoZoom = true; fn(); };
@@ -26,7 +26,7 @@ map.on('zoomend', () => { autoZoom = false; map.getContainer().classList.remove(
   map[name] = (...args) => { autoZoom = true; orig(...args); };
 });
 
-// DOM-icon stop dot — like the custom-icons demo: translate-only during zoom,
+// DOM-icon stop dot, like the custom-icons demo: translate-only during zoom,
 // constant size (SVG circleMarkers stretch/balloon mid-zoom instead)
 const stopIcon = () => L.divIcon({ className: '', html: '<div class="stop-dot"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
 
@@ -61,7 +61,7 @@ DATA.forEach((d, i) => {
   pl.on('click', () => select(i));
   lines.push(pl);
   // stop dots: one click handler = one behaviour, identical to clicking the path.
-  // (No bound popup — the floating popover is the single source of route info.)
+  // (No bound popup: the floating popover is the single source of route info.)
   L.marker(d.fromPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
   L.marker(d.toPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
 });
@@ -148,20 +148,20 @@ let pickB = null;
 
 Object.keys(POS).sort((a, b) => a.localeCompare(b, 'nb')).forEach((n) => A.add(new Option(n, n)));
 B.disabled = true;
-B.add(new Option('— pick stop A first —', ''));
+B.add(new Option('Pick stop A first', ''));
 
 A.addEventListener('change', () => {
   pickA = A.value || null;
   B.innerHTML = '';
   B.disabled = !pickA;
   if (!pickA) {
-    B.add(new Option('— pick stop A first —', ''));
+    B.add(new Option('Pick stop A first', ''));
     verdict.innerHTML = '';
     custom.clearLayers();
     return;
   }
   const nb = (ADJ[pickA] || []).sort((a, b) => a.localeCompare(b, 'nb'));
-  B.add(new Option(nb.length ? `— ${nb.length} neighbouring stop${nb.length > 1 ? 's' : ''} —` : '— no neighbours —', ''));
+  B.add(new Option(nb.length ? `${nb.length} neighbouring stop${nb.length > 1 ? 's' : ''}` : 'No neighbours', ''));
   nb.forEach((n) => B.add(new Option(n, n)));
   verdict.innerHTML = '';
   custom.clearLayers();
@@ -191,7 +191,7 @@ function check() {
   } else {
     verdict.innerHTML = `
       <div class="big">${Math.round(dist(pa, pb))} m</div>
-      <div class="sub2">Straight line — <b>${pickA}</b> and <b>${pickB}</b> are not consecutive stops on any line</div>
+      <div class="sub2">Straight line: <b>${pickA}</b> and <b>${pickB}</b> are not consecutive stops on any line</div>
       <div class="walk">Pick stop A first; stop B then offers only its connected stops.</div>`;
     L.polyline([pa, pb], { color: '#999', weight: 5, dashArray: '4 8' }).addTo(custom);
     fly(() => map.flyToBounds(L.latLngBounds([pa, pb]).pad(1.5), { duration: 0.7, maxZoom: 17 }));
@@ -211,7 +211,7 @@ function dist(a, b) {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-/* ------------------------------------------- "where am I" — live tracking */
+/* ------------------------------------------- "where am I" live tracking */
 
 const meLayer = L.layerGroup().addTo(map);
 let watchId = null;
@@ -258,7 +258,7 @@ function setUser(lat, lng) {
     nearcard.innerHTML = `
       <div class="big">You're ${Math.round(best.dEnd)} m from a really short pair!</div>
       <div class="sub2">${stopName} &harr; ${otherName} <span class="line-badge">${line}</span>
-        is <b>#${best.idx + 1}</b> — at <b>${len} m</b></div>
+        is <b>#${best.idx + 1}</b> at <b>${len} m</b></div>
       <div class="walk">🚶 Head ${bearing(me, target)}!</div>`;
     L.polyline(coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(meLayer);
     [[sp, stopName], [op, otherName]].forEach(([p]) =>
@@ -288,7 +288,7 @@ locBtn.onclick = () => {
   watchId = navigator.geolocation.watchPosition(
     (pos) => setUser(pos.coords.latitude, pos.coords.longitude),
     () => {
-      nearcard.innerHTML = '<div class="sub2">📍 Geolocation blocked — allow location and serve over HTTPS.</div>';
+      nearcard.innerHTML = '<div class="sub2">📍 Geolocation blocked. Allow location and serve over HTTPS.</div>';
     },
     { enableHighAccuracy: true, maximumAge: 2000 },
   );
@@ -297,3 +297,7 @@ locBtn.onclick = () => {
 
 document.getElementById('pairCount').textContent = `${PAIRS.length.toLocaleString('en')} pairs`;
 document.getElementById('pairStats').textContent = `${PAIRS.length.toLocaleString('en')} across ${Object.keys(POS).length.toLocaleString('en')} stops`;
+
+// fun fact: the size of the shipped path data (UTF-8 bytes of the pair geometry)
+document.getElementById('dataSize').textContent =
+  `~${Math.round(new Blob([JSON.stringify(PAIRS)]).size / 1024).toLocaleString('en')} KB`;

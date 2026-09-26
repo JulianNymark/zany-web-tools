@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bus stop golf — Zany Web Tools</title>
+<title>Bus stop golf · Zany Web Tools</title>
 <meta name="description" content="The 30 shortest hops between consecutive Oslo city-bus stops, measured along the road the bus actually drives. Track your position and find the nearest one.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230062ba'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23fff' text-anchor='middle'>z</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,7 +40,7 @@
 
     <noscript>
       <div class="ds-alert" data-color="warning" role="status">
-        This tool needs JavaScript — the whole point is a map with 30 drawn
+        This tool needs JavaScript. The point is a map with 30 drawn
         routes. The data and method notes are below either way.
       </div>
     </noscript>
@@ -62,17 +62,17 @@
       <div class="ds-card__block stack">
         <h2 class="ds-heading" data-size="2xs" id="pick-heading">Pick any two stops</h2>
         <p class="ds-paragraph pick-hint">
-          Pick stop A — stop B then offers only the stops connected to it on
+          Pick stop A. Stop B then offers only the stops connected to it on
           some line. In a line's middle you get two neighbours, at an end just one.
         </p>
         <div class="pick-row">
           <div class="ds-field">
             <label class="ds-label" for="stopA">Stop A</label>
-            <select class="ds-input" id="stopA"><option value="">— stop A —</option></select>
+            <select class="ds-input" id="stopA"><option value="">Pick a stop</option></select>
           </div>
           <div class="ds-field">
             <label class="ds-label" for="stopB">Stop B</label>
-            <select class="ds-input" id="stopB" disabled><option value="">— stop B —</option></select>
+            <select class="ds-input" id="stopB" disabled><option value="">Pick stop A first</option></select>
           </div>
         </div>
         <div id="verdict" class="verdict-card" role="status"></div>
@@ -83,23 +83,24 @@
     <section class="ds-card" aria-labelledby="me-heading">
 
     <details class="ds-details">
-      <summary>How it's made — and what it can't know</summary>
+      <summary>How it's made, and what it can't know</summary>
       <div class="stack details-body">
         <div>
           <h3 class="ds-heading" data-size="2xs">Data</h3>
           <ul class="ds-list">
             <li>Stops, lines and drive-path geometry from <a class="ds-link" href="https://developer.entur.no/" rel="noopener">Entur's JourneyPlanner v3</a> (Ruter's Oslo/Akershus network). Free, open data.</li>
-            <li>Only <b>city lines</b> count: 1–2-digit Ruter route numbers (20, 30, 37, 54, 81…), both stops in the Oslo area. Regional routes (2xx/3xx, e.g. out to Bærum) are excluded — that's where the silly 2 m "winners" lived.</li>
-            <li>Distance = length of the line's own drive-path polyline between the two stops (quay to quay, direction-true), computed from the geometry — the API's length field is unreliable.</li>
-            <li><span id="pairStats"></span> unique consecutive pairs, generated 26 September 2026. Includes lines that reach a bit beyond the city centre (Bygdøy, Grorud, Mortensrud…).</li>
+            <li><b>City lines</b> only: Ruter's 2-digit route numbers (20, 30, 37, 54, 81…), the same lines as Ruter's own "Bus in Oslo" tables.</li>
+            <li>Distance = length of the line's own drive-path polyline between the two stops (quay to quay, direction-true), computed from the geometry; the API's length field is unreliable.</li>
+            <li>Unique consecutive pairs: <span id="pairStats"></span>, generated 26 September 2026.</li>
+            <li>Fun fact: this is a static page. All of the path data, <span id="dataSize"></span> of coordinates, is downloaded up front; nothing is fetched after the page loads.</li>
           </ul>
         </div>
         <div>
           <h3 class="ds-heading" data-size="2xs">Limits</h3>
           <ul class="ds-list">
-            <li>Distances are as the bus drives, not as you walk — your footpath may be shorter.</li>
+            <li>Distances are as the bus drives, not as you walk; your footpath may be shorter.</li>
             <li>Some short pairs are hubs split across a street (Carl Berners plass, Jernbanetorget): real stops, same place to a human.</li>
-            <li>Geolocation needs HTTPS and your permission; nothing is stored anywhere — position never leaves the page.</li>
+            <li>Geolocation needs HTTPS and your permission; nothing is stored anywhere and position never leaves the page.</li>
           </ul>
         </div>
       </div>
