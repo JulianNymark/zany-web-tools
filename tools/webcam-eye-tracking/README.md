@@ -39,7 +39,21 @@ jsDelivr at runtime.
 Switch them from the **Tracker** dropdown in the toolbar at any time; switching
 restarts the session (WebGazer owns its own camera stream). WebGazer then
 self-calibrates from the same calibration dots via
-`webgazer.recordScreenPosition()`. The page also lists other options (TF.js
+`webgazer.recordScreenPosition()`.
+
+## Camera selection
+
+All three trackers share one camera picker and one selection ladder. The chosen
+camera is remembered per browser (`localStorage`); the browser's default is
+trusted only if it is not a phone-as-webcam device (macOS Continuity Camera and
+friends tend to list first) — otherwise a real webcam is preferred until you
+pick one explicitly from the dropdown. Switching the camera swaps the stream
+immediately for the ridge trackers; for WebGazer it restarts the session, since
+its `applyConstraints()` path cannot change the device. A camera held by
+another app (macOS gives some apps exclusive access) surfaces as
+`NotReadableError`: the page waits and retries a few times before failing, and
+switching cameras falls back to keeping the current one instead of dropping the
+session. The page also lists other options (TF.js
 face-landmarks-detection, face-api.js, ml5.js and the commercial SeeSo/Eyedid and
 GazeCloudAPI) with short tech notes and external demo links.
 

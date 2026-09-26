@@ -8,6 +8,7 @@
   const WG_SCRIPT = 'https://cdn.jsdelivr.net/npm/webgazer@3.5.3/dist/webgazer.js';
   const WG_SOLUTION = 'https://cdn.jsdelivr.net/npm/webgazer@3.5.3/dist/mediapipe/face_mesh';
   const CAM_KEY = 'eyegaze.camera';
+  const CAM_AUTO_KEY = 'eyegaze.camera.auto';
 
   const GRID = 5;
   const DWELL = 0.65;
@@ -395,18 +396,57 @@
         wg.params.showFaceFeedbackBox = false;
         wg.params.showGazeDot = false;
         wg.params.applyKalmanFilter = true;
+
+        // Same camera selection as the other trackers: pin the saved device.
+        // Without a deviceId the browser opens its default, which is often a
+        // phone (macOS Continuity Camera), not the plugged-in webcam.
+        let camId = readSavedCamera();
+        if (!camId) {
+          // No saved choice: probe once ourselves so the permission prompt
+          // resolves and device labels become visible, then skip a phone as
+          // the default camera when a real webcam is connected.
+          let used = null;
+          let usedLabel = '';
+          try {
+            const warm = await acquireStream({ facingMode: 'user' });
+            const t = warm.getVideoTracks()[0];
+            used = (t.getSettings ? t.getSettings() : {}).deviceId || null;
+            usedLabel = t.label || '';
+            warm.getTracks().forEach((x) => x.stop());
+          } catch (err) {
+            if (!err || (err.name !== 'NotReadableError' && err.name !== 'AbortError')) throw camError(err);
+            // Busy camera: keep going — beginWebGazer() below waits it out.
+          }
+          let devices = [];
+          try {
+            devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+          } catch (e) {}
+          const pick = pickDefaultCamera(devices, used);
+          camId = used && !PHONE_CAM_RE.test(usedLabel) ? used : (pick ? pick.deviceId : used);
+          saveCamera(camId);
+        }
+
         // WebGazer's defaults demand width.min 320, which rejects some
         // low-resolution cameras; ask for an ideal size instead.
-        wg.params.camConstraints = {
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-        };
+        const base = { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' };
         wg.setGazeListener((data) => { wgLatest = data; });
         // Start every WebGazer session with an untrained regression.
         try { await wg.clearData(); } catch (e) {}
-        await wg.begin();
+        camId = await beginWebGazer(wg, base, camId);
         // From here on, only our calibration dots train the model.
         wg.removeMouseEventListeners();
         wg.showPredictionPoints(false);
+        // Adopt the camera WebGazer actually opened so the picker matches.
+        try {
+          const v = document.getElementById('webgazerVideoFeed');
+          const t = v && v.srcObject ? v.srcObject.getVideoTracks()[0] : null;
+          const s = t && t.getSettings ? t.getSettings() : {};
+          currentDeviceId = s.deviceId || camId || null;
+        } catch (e) {
+          currentDeviceId = camId;
+        }
+        saveCamera(currentDeviceId);
+        await refreshCameraList();
       },
       sample() {
         return { features: null, data: null, gaze: wgLatest };
@@ -875,12 +915,121 @@
 
   /* ---------------------------------------------------------------- camera */
 
+  // macOS Continuity Camera (and phone-as-webcam apps) tends to sit first in
+  // the device list and becomes the browser's default pick; prefer a real
+  // webcam whenever one is connected.
+  const PHONE_CAM_RE = /iphone|ipad|ipod|android|continuity|phone/i;
+
+  function camError(err) {
+    const e = err instanceof Error ? err : new Error(String(err));
+    e.camera = true;
+    return e;
+  }
+
+  // A camera another app holds (macOS/Windows grant exclusive access) or one
+  // that needs a beat after a swap throws NotReadableError/AbortError instead
+  // of failing for good — it frees up seconds later, so wait and retry.
+  async function acquireStream(videoConstraints, onWait) {
+    const attempts = 4;
+    for (let i = 0; ; i++) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+      } catch (err) {
+        const busy = err && (err.name === 'NotReadableError' || err.name === 'AbortError');
+        if (!busy || i >= attempts - 1) throw err;
+        if (onWait) onWait(i + 1);
+        await new Promise((r) => setTimeout(r, 1200 * (i + 1)));
+      }
+    }
+  }
+
+  function readSavedCamera() {
+    try { return localStorage.getItem(CAM_KEY) || localStorage.getItem(CAM_AUTO_KEY); } catch (e) { return null; }
+  }
+
+  function hasCameraChoice() {
+    try { return !!localStorage.getItem(CAM_KEY); } catch (e) { return false; }
+  }
+
+  // Auto-detected pick — replaced whenever selection logic finds a better one.
+  function saveCamera(id) {
+    if (!id) return;
+    try { localStorage.setItem(CAM_AUTO_KEY, id); } catch (e) {}
+  }
+
+  // The user's explicit pick from the camera dropdown — never auto-overridden.
+  function saveCameraChoice(id) {
+    if (!id) return;
+    try {
+      localStorage.setItem(CAM_KEY, id);
+      localStorage.removeItem(CAM_AUTO_KEY);
+    } catch (e) {}
+  }
+
+  function pickDefaultCamera(devices, skipId) {
+    const rest = devices.filter((d) => d.deviceId && d.deviceId !== skipId);
+    return rest.find((d) => !PHONE_CAM_RE.test(d.label)) || rest[0] || null;
+  }
+
+  // WebGazer opens (and owns) its own stream from wg.begin(); a camera that
+  // another app still holds throws NotReadableError there too. Wait it out —
+  // the device frees up once the other app releases it.
+  async function beginWg(wg) {
+    try {
+      await wg.begin();
+    } catch (err) {
+      const busy = err && (err.name === 'NotReadableError' || err.name === 'AbortError');
+      if (!busy) throw err;
+      setStatus('Camera is busy \u2014 waiting for it to become free\u2026');
+      await new Promise((r) => setTimeout(r, 2000));
+      await wg.begin();
+    }
+  }
+
+  // Start WebGazer's camera with the same selection ladder as openCamera():
+  // the saved device first, then every remaining device (real webcams before
+  // phones), never trying the same device twice.
+  async function beginWebGazer(wg, base, camId) {
+    const constraints = (id) => ({ video: id ? { ...base, deviceId: { exact: id } } : { ...base } });
+    const tried = [];
+    let id = camId || null;
+    let last = null;
+    for (;;) {
+      if (!id || !tried.includes(id)) {
+        tried.push(id);
+        wg.params.camConstraints = constraints(id);
+        try {
+          await beginWg(wg);
+          return id;
+        } catch (err) {
+          last = err;
+          if (err && err.name === 'NotAllowedError') throw camError(err);
+        }
+      }
+      let devices = [];
+      try {
+        devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+      } catch (e) {}
+      const pick = pickDefaultCamera(devices, tried.find((x) => x) || null);
+      const next = pick ? pick.deviceId : null;
+      if (!next || tried.includes(next)) break;
+      id = next;
+    }
+    throw camError(last);
+  }
+
   async function openStream(deviceId) {
-    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+    const size = { width: { ideal: 1280 }, height: { ideal: 720 } };
     const videoConstraints = deviceId
-      ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      : { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
-    stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false });
+      ? { deviceId: { exact: deviceId }, ...size }
+      : { facingMode: 'user', ...size };
+    stream = await acquireStream(videoConstraints, (attempt) => {
+      setStatus('Camera is busy \u2014 waiting for it to become free (try ' + attempt + ')\u2026');
+    });
     video.srcObject = stream;
     await video.play().catch(() => {});
     if (!video.videoWidth) {
@@ -911,32 +1060,72 @@
   }
 
   async function openCamera() {
-    let savedId = null;
-    try { savedId = localStorage.getItem(CAM_KEY); } catch (e) {}
+    const explicit = hasCameraChoice();
+    const savedId = readSavedCamera();
     let label;
     try {
       label = await openStream(savedId || undefined);
     } catch (err) {
-      if (!savedId) throw err;
-      label = await openStream(undefined);
+      const deviceErr = err && err.name !== 'NotAllowedError' && err.name !== 'SecurityError';
+      if (!savedId || !deviceErr) throw err;
+      // The saved camera is gone or stuck — fall back to the best remaining
+      // one instead of giving up.
+      const devices = await refreshCameraList();
+      const fallback = pickDefaultCamera(devices, savedId);
+      if (!fallback) throw err;
+      // The old device is gone; the fallback becomes the stored choice.
+      saveCameraChoice(fallback.deviceId);
+      label = await openStream(fallback.deviceId);
+    }
+    // Unless the user picked a camera explicitly, do not stay on a phone-as-
+    // webcam default (macOS Continuity Camera lists first): prefer a real webcam.
+    if (!explicit && PHONE_CAM_RE.test(label)) {
+      const devices = await refreshCameraList();
+      const better = devices.find((d) => d.deviceId && d.deviceId !== currentDeviceId && !PHONE_CAM_RE.test(d.label));
+      if (better) {
+        try {
+          label = await openStream(better.deviceId);
+        } catch (e) {
+          label = await openStream(currentDeviceId).catch(() => label);
+        }
+      }
     }
     await refreshCameraList();
+    saveCamera(currentDeviceId);
     return label;
   }
 
   async function switchCamera(deviceId) {
     if (!running || !deviceId || deviceId === currentDeviceId) return;
     setStatus('Switching camera\u2026');
+    saveCameraChoice(deviceId);
+    if (active && active.ownsCamera) {
+      // WebGazer holds its own stream and applyConstraints() cannot change
+      // the device, so the correct hand-off is the same full restart used
+      // when switching trackers — it reopens the camera from the saved id.
+      stop();
+      await start();
+      return;
+    }
     try {
       const label = await openStream(deviceId);
       resetGazeState();
       if (active && active.restartOnStream) {
         try { await active.load(video); } catch (e) {}
       }
-      try { localStorage.setItem(CAM_KEY, deviceId); } catch (e) {}
       setStatus('Now using "' + label + '" \u2014 recalibrate');
     } catch (err) {
-      setStatus('Could not switch camera');
+      // Keep tracking on the previous camera rather than dropping the session.
+      try {
+        const label = await openStream(currentDeviceId || undefined);
+        el('camPicker').value = currentDeviceId;
+        if (active && active.restartOnStream) {
+          try { await active.load(video); } catch (e) {}
+        }
+        setStatus('Could not switch \u2014 kept "' + label + '"');
+      } catch (e2) {
+        setStatus('Could not switch camera');
+      }
     }
   }
 
@@ -983,6 +1172,10 @@
     try {
       await active.load(video);
     } catch (e) {
+      if (e && e.camera) {
+        cameraFailed(e);
+        return;
+      }
       const msg = 'Could not load ' + active.label + ' \u2014 check your connection, and serve over HTTPS or localhost.';
       setStatus(msg);
       introStatus.textContent = msg;
@@ -996,6 +1189,7 @@
     el('btnCalibrate').disabled = false;
     el('btnToggleCam').disabled = false;
     el('btnStop').disabled = false;
+    await refreshCameraList();
     setStatus(owns
       ? 'Using ' + active.label + ' \u2014 calibrate to start'
       : 'Using "' + label + '" \u00b7 ' + active.label + ' \u2014 calibrate to start');
@@ -1003,9 +1197,12 @@
   }
 
   function cameraFailed(err) {
-    const msg = err && err.name === 'NotAllowedError'
+    const name = err && err.name;
+    const msg = name === 'NotAllowedError' || name === 'SecurityError'
       ? 'Camera blocked \u2014 check permissions'
-      : 'No camera found';
+      : name === 'NotReadableError' || name === 'AbortError' || name === 'TimeoutError'
+        ? 'Camera is busy \u2014 close the app using it, then press start again'
+        : 'No camera found';
     setStatus(msg);
     introStatus.textContent = msg;
     game.hidden = true;
