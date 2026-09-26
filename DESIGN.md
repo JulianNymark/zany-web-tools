@@ -134,3 +134,15 @@ the page's own stylesheet, built from `--ds-*` variables so light/dark both work
 - [ ] Add a card to the hub's `.tool-grid`
 - [ ] Open it with and without JavaScript, narrow the window to ~360 px
 - [ ] Screenshot it (see the `browser-playwright` skill) before calling it done
+
+## Patterns learned
+
+- **Toggle-style buttons express commands, not state** (NN/g). Label the
+  button with the action clicking it performs ("Longest first ↓" while sorted
+  shortest-first); expose the current state through `aria-pressed` and, if
+  needed, a pressed visual style. Never blend the two into one ambiguous label.
+- **Map vector layers vs zoom animations** (busstop-golf): SVG panes are
+  transform-scaled mid-animation — fine for DOM icons, ugly for
+  `circleMarker`/polylines at large zoom deltas. Prefer `L.marker` + `divIcon`
+  for point marks; fade the overlay pane out during programmatic flights
+  (`zoomstart`/`zoomend`, skip for manual wheel zoom).

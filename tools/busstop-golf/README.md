@@ -9,8 +9,8 @@ The 30 shortest hops, measured along the road the bus actually drives.
   `pointsOnLink`), generated 2026-09-26
 - **Distance:** length of the decoded drive-path polyline between the two
   quays (the API's own length field is a placeholder, don't trust it)
-- **Scope:** 1–3-digit Ruter route numbers only (regular city network), both
-  stops inside the city → 257 unique pairs over 205 stops
+- **Scope:** 1–2-digit Ruter route numbers only (city network: 20, 30, 37, 54, 81…),
+  both stops inside a generous Oslo box (Bygdøy to Grorud) → 809 unique pairs over 668 stops
 
 ## Files
 

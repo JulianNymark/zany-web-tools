@@ -35,11 +35,7 @@
   <div class="app-panel">
     <div>
       <h1 class="ds-heading" data-size="md">Bus stop golf</h1>
-      <p class="ds-paragraph">
-        How close together can two consecutive stops on an Oslo city bus line
-        be? These are the <b>30 shortest hops</b>, measured along the road the
-        bus actually drives.
-      </p>
+      <p class="ds-paragraph">Oslo's shortest hops between neighbouring bus stops, ranked.</p>
     </div>
 
     <noscript>
@@ -53,7 +49,11 @@
     <section class="ds-card" aria-labelledby="board-heading">
       <div class="ds-card__block">
         <h2 class="ds-heading" data-size="2xs" id="board-heading">The leaderboard</h2>
-        <ol id="list" class="leg-list" aria-label="Shortest consecutive bus-stop pairs"></ol>
+        <div class="board-head">
+          <span class="ds-tag" id="pairCount" data-variant="outline"></span>
+          <button class="ds-button" id="sortToggle" type="button" data-variant="secondary" data-size="sm" aria-pressed="false" title="Toggle between the 30 shortest and 30 longest pairs">Show longest</button>
+        </div>
+        <ol id="list" class="leg-list" aria-label="Ranked consecutive bus-stop pairs"></ol>
       </div>
     </section>
 
@@ -79,18 +79,8 @@
       </div>
     </section>
 
-    <!-- live position -->
+    <!-- live position: the floating island on the map carries the button -->
     <section class="ds-card" aria-labelledby="me-heading">
-      <div class="ds-card__block stack">
-        <h2 class="ds-heading" data-size="2xs" id="me-heading">Where you are</h2>
-        <p class="ds-paragraph">
-          Track your position live: when you come within 100 m of either end of
-          a top-30 pair, the card pops and the walk is drawn.
-        </p>
-        <button class="ds-button" id="locme" type="button">📍 Track my position</button>
-        <div id="nearcard" class="verdict-card" role="status" hidden></div>
-      </div>
-    </section>
 
     <details class="ds-details">
       <summary>How it's made — and what it can't know</summary>
@@ -99,9 +89,9 @@
           <h3 class="ds-heading" data-size="2xs">Data</h3>
           <ul class="ds-list">
             <li>Stops, lines and drive-path geometry from <a class="ds-link" href="https://developer.entur.no/" rel="noopener">Entur's JourneyPlanner v3</a> (Ruter's Oslo/Akershus network). Free, open data.</li>
-            <li>Only <b>regular city lines</b> count: 1–3-digit Ruter route numbers, both stops inside the city. Regional 4-digit routes (school runs out in Romerike) are excluded — that's where the silly 2 m "winners" lived.</li>
+            <li>Only <b>city lines</b> count: 1–2-digit Ruter route numbers (20, 30, 37, 54, 81…), both stops in the Oslo area. Regional routes (2xx/3xx, e.g. out to Bærum) are excluded — that's where the silly 2 m "winners" lived.</li>
             <li>Distance = length of the line's own drive-path polyline between the two stops (quay to quay, direction-true), computed from the geometry — the API's length field is unreliable.</li>
-            <li>257 unique consecutive pairs across 205 stops, generated 26 September 2026.</li>
+            <li><span id="pairStats"></span> unique consecutive pairs, generated 26 September 2026. Includes lines that reach a bit beyond the city centre (Bygdøy, Grorud, Mortensrud…).</li>
           </ul>
         </div>
         <div>
@@ -118,7 +108,10 @@
 
   <div class="app-map">
     <div id="map" class="app-map__canvas" aria-label="Map of Oslo with the 30 shortest bus-stop hops drawn"></div>
-    <div class="legend" aria-hidden="true"><b>─</b> bus drive path &nbsp;·&nbsp; <b>●</b> stops</div>
+    <div class="map-island">
+      <div id="nearcard" class="verdict-card" role="status" hidden></div>
+      <button class="ds-button" id="locme" type="button">📍 Track my position</button>
+    </div>
   </div>
 </main>
 

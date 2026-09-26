@@ -3,14 +3,33 @@
    Globals DATA, PAIRS, ADJ, POS come from data.js. */
 
 const RANK_POOL = 30; // "you are close to" hunts among the 30 shortest pairs
-const map = L.map('map', { zoomControl: false }).setView([59.915, 10.76], 12);
+const RUTER_RED = '#E60000'; // official Ruter city-network colour
+const CITY_VIEW = L.latLngBounds([59.892, 10.62], [59.95, 10.88]); // Frogner–Økern-ish
+
+const map = L.map('map', { zoomControl: false }).setView([59.92, 10.75], 12);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; OpenStreetMap',
 }).addTo(map);
+map.fitBounds(CITY_VIEW, { maxZoom: 13 });
 
-const col = (i) => `hsl(${(i * 47) % 360} 72% 42%)`; // 30 distinct hues
+// vectors get transform-scaled mid-zoom (pixelated) — hide while zooming, fade back
+// hide vectors only during *programmatic* zooms — transform-scaling mid-flight
+// looks pixelated. Manual wheel/pinch zoom keeps them visible.
+let autoZoom = false;
+const fly = (fn) => { autoZoom = true; fn(); };
+map.on('zoomstart', () => { if (autoZoom) map.getContainer().classList.add('zooming'); });
+map.on('zoomend', () => { autoZoom = false; map.getContainer().classList.remove('zooming'); });
+['zoomIn', 'zoomOut'].forEach((name) => { // +/− buttons count as button presses
+  const orig = map[name].bind(map);
+  map[name] = (...args) => { autoZoom = true; orig(...args); };
+});
+
+// DOM-icon stop dot — like the custom-icons demo: translate-only during zoom,
+// constant size (SVG circleMarkers stretch/balloon mid-zoom instead)
+const stopIcon = () => L.divIcon({ className: '', html: '<div class="stop-dot"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
+
 const list = document.getElementById('list');
 const A = document.getElementById('stopA');
 const B = document.getElementById('stopB');
@@ -21,53 +40,109 @@ const locBtn = document.getElementById('locme');
 /* ---------------------------------------------------------- leaderboard */
 
 const lines = [];
-const markers = [];
 
-DATA.forEach((d, i) => {
-  const c = col(i);
-  const pl = L.polyline(d.coords, { color: c, weight: 6, opacity: 0.9 })
-    .addTo(map)
-    .bindTooltip(`#${d.rank}  ${d.from} &rarr; ${d.to} — ${Math.round(d.length)} m`, { sticky: true });
-  lines.push(pl);
-  const mk = (p, txt) =>
-    L.circleMarker(p, { radius: 7, color: '#fff', weight: 3, fillColor: c, fillOpacity: 1 })
-      .addTo(map)
-      .bindPopup(txt);
-  markers.push([mk(d.fromPos, `#${d.rank} <b>${d.from}</b> [${d.line}]`), mk(d.toPos, `#${d.rank} <b>${d.to}</b> [${d.line}]`)]);
-});
+// shared floating popup: anchored above the leg's bounding box, no tail
+const routePop = L.popup({ className: 'route-pop-float', autoPan: false, closeButton: true, offset: [0, 2] });
 
-function select(i) {
-  document.querySelectorAll('.leg').forEach((e, j) => e.classList.toggle('active', j === i));
-  document.querySelectorAll('.leg')[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  map.flyToBounds(lines[i].getBounds().pad(1.2), { duration: 0.7, maxZoom: 17 });
-  lines.forEach((pl, j) => pl.setStyle({ weight: j === i ? 10 : 5, opacity: j === i ? 1 : 0.35 }));
-  markers.forEach((ms, j) => ms.forEach((m) => m.setStyle({ fillOpacity: j === i ? 1 : 0.35, radius: j === i ? 9 : 6 })));
-  custom.clearLayers();
-  verdict.innerHTML = '';
+function routePopup(rank, from, to, line, len) {
+  return `
+    <div class="route-pop">
+      <div class="route-pop__rank">#${rank}</div>
+      <div class="route-pop__names">${from}<br><span class="dir">↳</span> ${to}</div>
+      <div class="route-pop__meta">
+        <span class="line-badge">${line}</span>
+        <b>${Math.round(len)} meters</b>
+      </div>
+    </div>`;
 }
 
 DATA.forEach((d, i) => {
-  const li = document.createElement('li');
-  li.className = 'leg';
-  li.tabIndex = 0;
-  li.setAttribute('role', 'button');
-  li.innerHTML = `
-    <span class="rank">${d.rank}</span>
-    <span class="body">
-      <span class="name">${d.from} &rarr; ${d.to}</span>
-      <span class="meta"><span class="line-badge">${d.line}</span> two stops in a row</span>
-    </span>
-    <span class="dist">${Math.round(d.length)}<small>METERS</small></span>`;
-  li.onclick = () => select(i);
-  li.onkeydown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(i); }
-  };
-  list.appendChild(li);
+  const pl = L.polyline(d.coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(map);
+  pl.on('click', () => select(i));
+  lines.push(pl);
+  // stop dots: one click handler = one behaviour, identical to clicking the path.
+  // (No bound popup — the floating popover is the single source of route info.)
+  L.marker(d.fromPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
+  L.marker(d.toPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
 });
+
+function select(vi) {
+  activeIdx = vi;
+  document.querySelectorAll('.leg').forEach((e) => e.classList.toggle('active', +e.dataset.vi === vi));
+  [...document.querySelectorAll('.leg')].find((e) => +e.dataset.vi === vi)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  const v = view[vi];
+  let bb, content;
+  if (v.d) { // top-30 shortest entry: its polyline lives permanently on the map
+    bb = lines[vi].getBounds(); // exact endpoints, no margin
+    lines.forEach((pl, j) => pl.setStyle({ weight: j === vi ? 10 : 4, opacity: j === vi ? 1 : 0.3 }));
+    content = routePopup(v.rank, v.d.from, v.d.to, v.d.line, v.d.length);
+  } else { // top-30 longest entry: draw it on demand, dim the permanent set
+    const [a, b, code, len, coords, fn, tn] = v.p;
+    custom.clearLayers();
+    const pl = L.polyline(coords, { color: RUTER_RED, weight: 10, opacity: 0.95 }).addTo(custom);
+    bb = pl.getBounds();
+    lines.forEach((pl) => pl.setStyle({ weight: 4, opacity: 0.15 }));
+    content = routePopup(v.rank, fn, tn, code, len);
+  }
+  fly(() => map.flyToBounds(bb.pad(0.25), { duration: 0.7, maxZoom: 17 }));
+  // popup floats just above the true bounding box of the two stops
+  const topCenter = L.latLng(bb.getNorth(), (bb.getEast() + bb.getWest()) / 2);
+  routePop.setLatLng(topCenter).setContent(content);
+  clearTimeout(popTimer);
+  popTimer = setTimeout(() => routePop.openOn(map), 750); // after fly-in
+  verdict.innerHTML = '';
+}
+
+let desc = false;
+let activeIdx = null;
+let view = [];
+
+function buildList() {
+  view = desc
+    ? PAIRS.slice(-30).reverse().map((p) => ({ p, rank: PAIRS.indexOf(p) + 1 }))
+    : DATA.map((d) => ({ d, rank: d.rank }));
+  list.innerHTML = '';
+  view.forEach((v, vi) => {
+    const from = v.d ? v.d.from : v.p[5];
+    const to = v.d ? v.d.to : v.p[6];
+    const line = v.d ? v.d.line : v.p[2];
+    const len = v.d ? v.d.length : v.p[3];
+    const li = document.createElement('li');
+    li.className = 'leg' + (vi === activeIdx ? ' active' : '');
+    li.dataset.vi = vi;
+    li.tabIndex = 0;
+    li.setAttribute('role', 'button');
+    li.innerHTML = `
+      <span class="rank">#${v.rank}</span>
+      <span class="body">
+        <span class="stop" title="${from}">${from}</span>
+        <span class="stop" title="${to}"><span class="dir">↳</span> ${to}</span>
+      </span>
+      <span class="dist" title="${Math.round(len)} meters along the drive path"><span class="num">${Math.round(len)}&hairsp;<small>m</small></span><span class="line-badge" title="Line number ${line}">${line}</span></span>`;
+    li.onclick = () => select(vi);
+    li.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(vi); }
+    };
+    list.appendChild(li);
+  });
+}
+buildList();
+
+document.getElementById('sortToggle').onclick = (e) => {
+  desc = !desc;
+  activeIdx = null;
+  e.currentTarget.textContent = desc ? 'Show shortest' : 'Show longest';
+  e.currentTarget.setAttribute('aria-pressed', String(desc)); // state via AT, label stays a command
+  routePop.close();
+  custom.clearLayers();
+  lines.forEach((pl) => pl.setStyle({ weight: 6, opacity: 0.9 }));
+  buildList();
+};
 
 /* -------------------------------------------------------- pick-two game */
 
 const custom = L.layerGroup().addTo(map);
+let popTimer = null;
 let pickA = null;
 let pickB = null;
 
@@ -106,25 +181,20 @@ function check() {
   if (pair) {
     const [f, t, line, len, coords, fromName, toName] = pair;
     const idx = PAIRS.indexOf(pair);
-    const eA = coords[0];
-    const eB = coords[coords.length - 1]; // quay-level, direction-true
     verdict.innerHTML = `
       <div class="big">${len} m</div>
-      <div class="sub2">${f} &harr; ${t} on line <span class="line-badge">${line}</span> is
+      <div class="sub2">${fromName} &rarr; ${toName} on <span class="line-badge">${line}</span> is
         <b>#${idx + 1}</b> of ${PAIRS.length.toLocaleString('en')} stop pairs</div>
       <div class="walk">Closer than ${pct(idx)}% of all pairs.</div>`;
-    const c = col(idx);
-    L.polyline(coords, { color: c, weight: 8, opacity: 0.95 }).addTo(custom);
-    [[eA, fromName], [eB, toName]].forEach(([p, n]) =>
-      L.circleMarker(p, { radius: 9, color: '#fff', weight: 3, fillColor: c, fillOpacity: 1 }).addTo(custom).bindPopup(n));
-    map.flyToBounds(L.latLngBounds(coords).pad(1.5), { duration: 0.7, maxZoom: 17 });
+    L.polyline(coords, { color: RUTER_RED, weight: 8, opacity: 0.95 }).addTo(custom);
+    fly(() => map.flyToBounds(L.latLngBounds(coords).pad(1.5), { duration: 0.7, maxZoom: 17 }));
   } else {
     verdict.innerHTML = `
       <div class="big">${Math.round(dist(pa, pb))} m</div>
       <div class="sub2">Straight line — <b>${pickA}</b> and <b>${pickB}</b> are not consecutive stops on any line</div>
       <div class="walk">Pick stop A first; stop B then offers only its connected stops.</div>`;
     L.polyline([pa, pb], { color: '#999', weight: 5, dashArray: '4 8' }).addTo(custom);
-    map.flyToBounds(L.latLngBounds([pa, pb]).pad(1.5), { duration: 0.7, maxZoom: 17 });
+    fly(() => map.flyToBounds(L.latLngBounds([pa, pb]).pad(1.5), { duration: 0.7, maxZoom: 17 }));
   }
 }
 
@@ -145,6 +215,7 @@ function dist(a, b) {
 
 const meLayer = L.layerGroup().addTo(map);
 let watchId = null;
+let haveFirstFix = false;
 
 function bearing(a, b) {
   const f1 = (a[0] * Math.PI) / 180;
@@ -160,6 +231,10 @@ function setUser(lat, lng) {
   const me = [lat, lng];
   const icon = L.divIcon({ className: '', html: '<div class="me-pulse"></div>', iconSize: [15, 15], iconAnchor: [7.5, 7.5] });
   L.marker(me, { icon, zIndexOffset: 1000 }).addTo(meLayer).bindPopup('You are here');
+  if (!haveFirstFix) {
+    haveFirstFix = true;
+    fly(() => map.flyTo(me, 15, { duration: 0.8 })); // zoom to the user first
+  }
 
   let best = null;
   PAIRS.slice(0, RANK_POOL).forEach((p, idx) => {
@@ -171,25 +246,24 @@ function setUser(lat, lng) {
     if (!best || d < best.d) best = { d, idx, p, end: dA <= dB ? 0 : 1, dEnd: Math.min(dA, dB) };
   });
 
-  const [a, b, line, len, coords, fromName, toName] = best.p;
-  const stopName = best.end === 0 ? fromName : toName;
-  const otherName = best.end === 0 ? toName : fromName;
-  const sp = coords[0];
-  const op = coords[coords.length - 1];
-  const target = best.end === 0 ? sp : op;
-
   if (best.dEnd <= 100) {
+    const [a, b, line, len, coords, fromName, toName] = best.p;
+    const stopName = best.end === 0 ? fromName : toName;
+    const otherName = best.end === 0 ? toName : fromName;
+    const sp = coords[0];
+    const op = coords[coords.length - 1];
+    const target = best.end === 0 ? sp : op;
     L.polyline([me, target], { color: '#1668c1', weight: 5, dashArray: '2 8', opacity: 0.9 }).addTo(meLayer);
     nearcard.hidden = false;
     nearcard.innerHTML = `
-      <div class="big">You're ${Math.round(best.dEnd)} m from a really short bus stop pair!</div>
+      <div class="big">You're ${Math.round(best.dEnd)} m from a really short pair!</div>
       <div class="sub2">${stopName} &harr; ${otherName} <span class="line-badge">${line}</span>
-        is <b>#${best.idx + 1}</b> shortest of ${PAIRS.length} (top-${RANK_POOL} hunt) — at <b>${len} m</b></div>
-      <div class="walk">🚶 ${stopName} is right there — head ${bearing(me, target)}!</div>`;
-    map.flyToBounds(L.latLngBounds([me, sp, op]).pad(1.5), { duration: 0.7, maxZoom: 17 });
-    L.polyline(coords, { color: col(best.idx), weight: 6, opacity: 0.9 }).addTo(meLayer);
-    [[sp, stopName], [op, otherName]].forEach(([p, n]) =>
-      L.circleMarker(p, { radius: 8, color: '#fff', weight: 3, fillColor: col(best.idx), fillOpacity: 1 }).addTo(meLayer).bindPopup(n));
+        is <b>#${best.idx + 1}</b> — at <b>${len} m</b></div>
+      <div class="walk">🚶 Head ${bearing(me, target)}!</div>`;
+    L.polyline(coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(meLayer);
+    [[sp, stopName], [op, otherName]].forEach(([p]) =>
+      L.marker(p, { icon: stopIcon() }).addTo(meLayer)); // route info lives in the nearcard
+    fly(() => map.flyToBounds(L.latLngBounds([me, sp, op]).pad(1.5), { duration: 0.7, maxZoom: 17 }));
   } else {
     nearcard.hidden = true;
   }
@@ -203,8 +277,10 @@ locBtn.onclick = () => {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
+    haveFirstFix = false;
     locBtn.textContent = '📍 Track my position';
     nearcard.hidden = true;
+    meLayer.clearLayers();
     return;
   }
   nearcard.hidden = false;
@@ -219,4 +295,5 @@ locBtn.onclick = () => {
   locBtn.textContent = '⏸ Stop tracking';
 };
 
-select(0);
+document.getElementById('pairCount').textContent = `${PAIRS.length.toLocaleString('en')} pairs`;
+document.getElementById('pairStats').textContent = `${PAIRS.length.toLocaleString('en')} across ${Object.keys(POS).length.toLocaleString('en')} stops`;
