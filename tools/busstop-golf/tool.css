@@ -1,0 +1,125 @@
+/* ---------------------------------------------------------------------------
+   Bus stop golf — tool-specific styles.
+
+   Built from Designsystemet tokens so light and dark mode both work. DS
+   carries the UI components; this file covers the map stage, the leaderboard
+   rows, the pick-two verdicts and the position marker pulse.
+   --------------------------------------------------------------------------- */
+
+/* ------------------------------------------------------------------ layout
+   (app-shell / app-panel / app-map come from assets/site.css; only the map
+   id, the legend and the leaflet dark-mode touches live here) */
+
+#map { background: var(--ds-color-neutral-background-default); }
+
+.legend {
+  position: absolute; right: var(--ds-size-2); bottom: var(--ds-size-2); z-index: 1000;
+  background: color-mix(in srgb, var(--ds-color-neutral-background-default) 92%, transparent);
+  border: 1px solid var(--ds-color-neutral-border-subtle);
+  border-radius: var(--ds-border-radius-md);
+  padding: var(--ds-size-2) var(--ds-size-3);
+  font-size: var(--ds-font-size-sm);
+}
+
+/* ------------------------------------------------------- leaderboard rows */
+
+.leg-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ds-size-2); }
+
+.leg {
+  display: flex; align-items: center; gap: var(--ds-size-3);
+  border: 1px solid var(--ds-color-neutral-border-subtle);
+  border-radius: var(--ds-border-radius-md);
+  padding: var(--ds-size-2) var(--ds-size-3);
+  background: var(--ds-color-neutral-background-default);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.leg:hover { border-color: var(--ds-color-neutral-border-strong); background: var(--ds-color-neutral-background-subtle); }
+.leg.active { border-color: var(--ds-color-accent-base-default); background: var(--ds-color-accent-surface-default); }
+.leg:focus-visible { outline: 2px solid var(--ds-color-accent-base-default); outline-offset: 2px; }
+
+.leg .rank {
+  flex: none; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--ds-font-size-sm); font-weight: var(--ds-font-weight-semibold);
+  background: var(--ds-color-accent-surface-default); color: var(--ds-color-accent-text-default);
+}
+.leg.active .rank { background: var(--ds-color-accent-base-default); color: var(--ds-color-neutral-text-default); }
+.leg:first-child .rank { background: var(--ds-color-warning-base-default); color: var(--ds-color-neutral-text-default); }
+
+.leg .body { flex: 1; min-width: 0; }
+.leg .name {
+  display: block; font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-md); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: var(--ds-size-1);
+}
+.leg .meta {
+  display: flex; align-items: center; gap: var(--ds-size-2);
+  margin-top: 2px; color: var(--ds-color-neutral-text-subtle);
+  font-size: var(--ds-font-size-sm); white-space: nowrap; overflow: hidden;
+}
+.leg .dist {
+  flex: none; min-width: 3.4rem; text-align: right; line-height: 1.1;
+  font-size: var(--ds-font-size-lg); font-weight: var(--ds-font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.leg .dist small {
+  display: block; font-size: 0.65rem; font-weight: var(--ds-font-weight-semibold);
+  letter-spacing: 0.06em; color: var(--ds-color-neutral-text-subtle); margin-top: 1px;
+}
+
+/* line-number pill (Ruter style-ish) */
+.line-badge {
+  flex: none; display: inline-block; min-width: 1.6rem; text-align: center;
+  font-size: var(--ds-font-size-xs); font-weight: var(--ds-font-weight-semibold);
+  padding: 1px var(--ds-size-2); border-radius: 999px;
+  background: var(--ds-color-warning-surface-default); color: var(--ds-color-warning-text-default);
+}
+
+/* ----------------------------------------------------------------- picker */
+
+.pick-hint { margin-top: calc(-1 * var(--ds-size-2)); font-size: var(--ds-font-size-sm); color: var(--ds-color-neutral-text-subtle); }
+
+.pick-row { display: flex; gap: var(--ds-size-3); align-items: flex-end; }
+.pick-row .ds-field { flex: 1; min-width: 0; }
+.pick-row .ds-field .ds-label { margin-bottom: var(--ds-size-1); }
+@media (max-width: 480px) { .pick-row { flex-direction: column; align-items: stretch; } }
+
+.verdict-card {
+  margin-top: var(--ds-size-3);
+  background: var(--ds-color-accent-surface-default);
+  border: 1px solid var(--ds-color-accent-border-subtle);
+  border-radius: var(--ds-border-radius-md);
+  padding: var(--ds-size-3) var(--ds-size-4);
+  text-align: center;
+}
+.verdict-card:empty { display: none; }
+.verdict-card .big {
+  font-size: var(--ds-font-size-10); font-weight: var(--ds-font-weight-semibold);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.verdict-card .sub2 { font-size: var(--ds-font-size-md); margin-top: var(--ds-size-1); }
+.verdict-card .walk {
+  margin-top: var(--ds-size-2); font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-semibold); color: var(--ds-color-info-text-default);
+}
+
+/* --------------------------------------------------------- position pulse */
+
+.me-pulse {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--ds-color-info-base-default); border: 2.5px solid #fff;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-color-info-base-default) 50%, transparent);
+  animation: me-pulse 2s infinite;
+}
+@keyframes me-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ds-color-info-base-default) 45%, transparent); }
+  70% { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* leaflet popups on DS tokens */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--ds-color-neutral-background-default);
+  color: var(--ds-color-neutral-text-default);
+}
