@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Park &amp; tree coverage sampler — Zany Web Tools</title>
-<meta name="description" content="Sample how much of a square is parks and woodland: the 30% of the 3-30-300 rule. Zoom squares from city to city block, or a fixed buffer around a pin.">
+<meta name="description" content="Sample how much of a square is parks and woodland (the 30 of the 3-30-300 rule) and how far the nearest green space is (the 300). Zoom squares from city to city block, or a fixed buffer around a pin.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230062ba'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23fff' text-anchor='middle'>z</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,62 +36,74 @@
     <div>
       <h1 class="ds-heading" data-size="md">Park &amp; tree coverage</h1>
       <p class="ds-paragraph">
-        How much of the square around the pin is green? Sample it as a zoom
-        square (neighbourhood, 5-minute walk, block) or a fixed buffer.
+        Check the 3+30+300 principle (<a class="ds-link" href="https://330300rule.com" rel="noopener">330300rule.com</a>)
+        for the pin: 3 mature trees visible from home, 30% canopy cover in the
+        neighbourhood, and a public green space within 300 m.
       </p>
     </div>
 
-    <!-- the answer first -->
-    <section class="ds-card" id="resultCard" aria-labelledby="result-heading">
-      <div class="ds-card__block">
-        <h2 class="ds-heading" data-size="2xs" id="result-heading">Coverage</h2>
-        <div class="verdict">
-          <div class="big" id="bigPercent">&ndash;</div>
-          <span class="ds-tag" id="badge" data-size="md">waiting</span>
-        </div>
-        <p class="ds-paragraph" id="resultMeta">Sampling&hellip;</p>
-        <div id="parkNames"></div>
-      </div>
-    </section>
+    <!-- the 3+30+300 checklist: one yes/no rule per card; each card has the
+         question, the answer tag and its one user input -->
 
-    <!-- counted area, hoisted up and labelled -->
-    <section class="ds-card" aria-labelledby="area-heading">
-      <div class="ds-card__block">
-        <h2 class="ds-heading" data-size="2xs" id="area-heading">Counted area</h2>
+    <div class="checklist">
+      <section class="ds-card" id="treesCard" aria-labelledby="trees-heading">
+        <div class="ds-card__block">
+          <div class="rule-head">
+            <h2 class="ds-heading" data-size="2xs" id="trees-heading"><span class="rule-n">3</span> Mature trees from home</h2>
+            <span class="ds-tag" id="treesBadge" data-size="md">no</span>
+          </div>
+          <div class="verdict trees-toggle">
+            <input class="ds-input" type="checkbox" id="seeTrees">
+            <label class="ds-label" for="seeTrees">3 mature trees are visible from here</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="ds-card" id="resultCard" aria-labelledby="result-heading">
+        <div class="ds-card__block">
+          <div class="rule-head">
+            <h2 class="ds-heading" data-size="2xs" id="result-heading"><span class="rule-n">30</span> Canopy in the square</h2>
+            <span class="ds-tag" id="badge" data-size="md">waiting</span>
+          </div>
+          <div class="verdict">
+            <div class="big" id="bigPercent">&ndash;</div>
+            <select class="ds-input" id="size" aria-label="Sample square size"></select>
+          </div>
+        </div>
+      </section>
+
+      <section class="ds-card" id="ruleCard" aria-labelledby="rule-heading">
+        <div class="ds-card__block">
+          <div class="rule-head">
+            <h2 class="ds-heading" data-size="2xs" id="rule-heading"><span class="rule-n">300</span> Green space</h2>
+            <span class="ds-tag" id="ruleBadge" data-size="md">waiting</span>
+          </div>
+          <div class="verdict">
+            <div class="big" id="ruleDist">&ndash;</div>
+            <select class="ds-input" id="gsMin" aria-label="Minimum green-space size">
+              <option value="1" selected>at least 1 ha</option>
+              <option value="0.5">at least 0.5 ha</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- what was counted in the 30, and the picker that decides it -->
+    <section class="ds-card" aria-labelledby="cover-heading">
+      <div class="ds-card__block stack">
+        <h2 class="ds-heading" data-size="2xs" id="cover-heading">What counts as cover</h2>
+        <p class="ds-paragraph" id="profileNote" hidden></p>
         <div class="preview-frame">
           <canvas id="preview" width="512" height="512" aria-label="Map of the sampled square, coloured by what was counted"></canvas>
         </div>
         <div class="legend" id="previewLegend"></div>
-      </div>
-    </section>
-
-    <section class="ds-card" aria-labelledby="square-heading">
-      <div class="ds-card__block stack">
-        <h2 class="ds-heading" data-size="2xs" id="square-heading">Square to sample</h2>
-        <div class="ds-field">
-          <label class="ds-label" for="size">Sample square</label>
-          <select class="ds-input" id="size"></select>
-        </div>
-        <div class="ds-field">
-          <input class="ds-input" type="checkbox" id="centerOnPin" checked>
-          <label class="ds-label" for="centerOnPin">Centre the square on the pin</label>
-        </div>
-        <p class="ds-paragraph" id="squareMeta"></p>
-      </div>
-    </section>
-
-    <section class="ds-card" aria-labelledby="cover-heading">
-      <div class="ds-card__block stack">
-        <h2 class="ds-heading" data-size="2xs" id="cover-heading">What counts as cover</h2>
+        <div class="kv" id="countMeta"></div>
+        <div id="parkNames"></div>
         <div id="categories" class="cat-list"></div>
         <div class="cluster">
           <button class="ds-button" id="presetTrees" type="button" data-variant="secondary" data-size="sm">Trees = parks + woods</button>
           <button class="ds-button" id="presetGreen" type="button" data-variant="tertiary" data-size="sm">All green</button>
-        </div>
-        <div class="ds-field cluster" data-size="sm">
-          <label class="ds-label" for="threshold">Green threshold</label>
-          <input class="ds-input" id="threshold" type="number" min="0" max="100" step="1" value="30" style="max-width: 6rem">
-          <span class="ds-label" aria-hidden="true">%</span>
         </div>
       </div>
     </section>
@@ -103,6 +115,14 @@
           <input class="ds-input" type="checkbox" id="showDataTiles">
           <label class="ds-label" for="showDataTiles">Show the data-tile outlines (debug)</label>
         </div>
+        <div class="ds-field">
+          <input class="ds-input" type="checkbox" id="showCountries" checked>
+          <label class="ds-label" for="showCountries">Overlay countries by their default cover profile (country zoom)</label>
+        </div>
+        <div class="ds-field">
+          <input class="ds-input" type="checkbox" id="centerOnPin" checked>
+          <label class="ds-label" for="centerOnPin">Centre the sample square on the pin</label>
+        </div>
 
         <div>
           <h3 class="ds-heading" data-size="2xs">Data &amp; limits</h3>
@@ -111,6 +131,8 @@
             <li>There is no tree-canopy layer. A park counts as fully covered, so <em>parks + woods</em> is an upper bound and <em>woods alone</em> is the conservative tree-only number.</li>
             <li>Individual street trees are not in the data at all.</li>
             <li>Marine protected areas are in the park layer, so a point at sea can score &ldquo;parks&rdquo;.</li>
+            <li>The 30 and the 300 are two different requirements. The 30 approximates tree canopy (shade overhead) with parks and woods. The 300 is access to a public green space for recreation, treed or not: grass, pitches, gardens and wetland all count. That split is the rule's own.</li>
+            <li>The 300 is straight-line distance from the pin. The rule's authors specify walking distance, which is always longer. Farmland and private grounds are excluded from the green-space check. Sizes and distances come from the same z14 geometry as the coverage.</li>
           </ul>
         </div>
 
@@ -143,16 +165,16 @@
   <div class="app-map">
     <div id="map" class="app-map__canvas"></div>
     <div id="mapNote" class="map-note" hidden></div>
-    <div id="status" class="status">Loading map&hellip;</div>
+    <div id="status" class="status" hidden></div>
 
     <form class="map-island" id="locateForm" data-size="sm" autocomplete="off">
       <div class="ds-field">
         <label class="ds-label" for="lat">Latitude</label>
-        <input class="ds-input" id="lat" type="number" step="0.00001" value="52.35813" inputmode="decimal">
+        <input class="ds-input" id="lat" type="number" step="0.00001" value="59.91691" inputmode="decimal">
       </div>
       <div class="ds-field">
         <label class="ds-label" for="lon">Longitude</label>
-        <input class="ds-input" id="lon" type="number" step="0.00001" value="4.86865" inputmode="decimal">
+        <input class="ds-input" id="lon" type="number" step="0.00001" value="10.72756" inputmode="decimal">
       </div>
       <button class="ds-button" id="go" type="button">Move pin</button>
       <button class="ds-button" id="locate" type="button" data-variant="secondary">Use my location</button>
@@ -163,6 +185,8 @@
 <script src="../../assets/vendor/maplibre/maplibre-gl.js"></script>
 <script src="mvt.js"></script>
 <script src="coverage.js"></script>
+<script src="countries.js"></script>
+<script src="greenspace.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

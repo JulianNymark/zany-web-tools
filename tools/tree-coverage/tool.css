@@ -18,16 +18,86 @@
 }
 
 .big {
-  font-size: var(--ds-font-size-10);
+  font-size: var(--ds-font-size-7);
   font-weight: var(--ds-font-weight-semibold);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
-#resultCard { border-left: 4px solid var(--ds-color-neutral-border-strong); }
-#resultCard.pass { border-left-color: var(--ds-color-success-base-default); }
-#resultCard.fail { border-left-color: var(--ds-color-danger-base-default); }
+/* the 3+30+300 checklist: one rule per card, numbered, border shows verdict */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-size-4);
+}
+
+#resultCard, #ruleCard, #treesCard { border-left: 4px solid var(--ds-color-neutral-border-strong); }
+#resultCard.pass, #ruleCard.pass, #treesCard.pass { border-left-color: var(--ds-color-success-base-default); }
+#resultCard.fail, #ruleCard.fail { border-left-color: var(--ds-color-danger-base-default); }
+
+.rule-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-size-3);
+  min-height: 2rem;
+}
+
+.rule-head .ds-tag { margin-inline-start: auto; }
+
+/* headings quiet down: the tag and the number carry the verdict */
+.rule-head .ds-heading { font-weight: var(--ds-font-weight-medium); }
+
+/* status tags go solid so the verdict is readable at a glance */
+.checklist .ds-tag[data-color='success'] {
+  background: var(--ds-color-success-base-default);
+  color: var(--ds-color-success-base-contrast-default);
+}
+.checklist .ds-tag[data-color='danger'] {
+  background: var(--ds-color-danger-base-default);
+  color: var(--ds-color-danger-base-contrast-default);
+}
+
+/* one uniform answer row per card: value or checkbox left, control right */
+.verdict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-size-3);
+  margin-top: var(--ds-size-3);
+  min-height: 2.75rem;
+}
+
+.verdict select { flex: 0 1 auto; min-width: 10rem; }
+
+/* rule 3's checkbox line: plain, compact, label hugs the checkbox */
+.trees-toggle { flex: 1 1 auto; justify-content: flex-start; min-width: 0; }
+
+/* the 3 / 30 / 300 numbers live in the title text: quiet, aligned, no pill */
+.rule-n {
+  display: inline-block;
+  min-width: 1.9rem;
+  margin-right: var(--ds-size-1);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--ds-font-weight-semibold);
+  color: var(--ds-color-neutral-text-subtle);
+}
+
+/* a passing rule's number lights up with the card */
+.pass .rule-n { color: var(--ds-color-success-base-default); }
+.trees-toggle .ds-label {
+  margin: 0;
+  font-size: var(--ds-font-size-2);
+  font-weight: var(--ds-font-weight-normal);
+}
+
+.big {
+  font-size: var(--ds-font-size-7);
+  font-weight: var(--ds-font-weight-semibold);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
 
 /* --------------------------------------------------------------- categories */
 
@@ -123,6 +193,17 @@
 
 .chips { display: flex; flex-wrap: wrap; gap: var(--ds-size-2); margin-top: var(--ds-size-3); }
 
+/* deterministic stat rows: fixed label, fixed order, one value per line */
+.kv { display: flex; flex-direction: column; gap: var(--ds-size-1); }
+.kv-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: var(--ds-size-2);
+  font-size: var(--ds-font-size-2);
+}
+.kv-k { color: var(--ds-color-neutral-text-subtle); }
+.kv-v { font-variant-numeric: tabular-nums; }
+
 /* ------------------------------------------------------------------- notes */
 
 .details-body { padding-top: var(--ds-size-3); }
@@ -143,6 +224,8 @@
   box-shadow: var(--ds-shadow-sm);
   pointer-events: none;
 }
+
+.status[hidden] { display: none; }
 
 .status.error {
   background: var(--ds-color-danger-base-default);
