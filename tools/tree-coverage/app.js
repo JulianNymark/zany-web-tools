@@ -353,7 +353,7 @@
         id: 'square-raster',
         type: 'raster',
         source: 'squareRaster',
-        paint: { 'raster-opacity': 1, 'raster-fade-duration': 0 },
+        paint: { 'raster-opacity': 0.55, 'raster-fade-duration': 0 },
       }, 'square-casing');
     } else {
       map.getSource('squareRaster').updateImage({ url, coordinates });

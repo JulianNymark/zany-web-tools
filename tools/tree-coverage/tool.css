@@ -18,8 +18,8 @@
 }
 
 .big {
-  font-size: var(--ds-font-size-7);
-  font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-6);
+  font-weight: var(--ds-font-weight-medium);
   line-height: 1.1;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -46,16 +46,23 @@
 .rule-head .ds-tag { margin-inline-start: auto; }
 
 /* headings quiet down: the tag and the number carry the verdict */
-.rule-head .ds-heading { font-weight: var(--ds-font-weight-medium); }
+.rule-head .ds-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: var(--ds-font-weight-medium);
+  white-space: nowrap;
+}
 
-/* status tags go solid so the verdict is readable at a glance */
+/* status tags read as quiet verdict chips, not solid blocks */
 .checklist .ds-tag[data-color='success'] {
-  background: var(--ds-color-success-base-default);
-  color: var(--ds-color-success-base-contrast-default);
+  background: var(--ds-color-success-surface-tinted);
+  border-color: var(--ds-color-success-border-subtle);
+  color: var(--ds-color-success-text-default);
 }
 .checklist .ds-tag[data-color='danger'] {
-  background: var(--ds-color-danger-base-default);
-  color: var(--ds-color-danger-base-contrast-default);
+  background: var(--ds-color-danger-surface-tinted);
+  border-color: var(--ds-color-danger-border-subtle);
+  color: var(--ds-color-danger-text-default);
 }
 
 /* one uniform answer row per card: value or checkbox left, control right */
@@ -73,18 +80,17 @@
 /* rule 3's checkbox line: plain, compact, label hugs the checkbox */
 .trees-toggle { flex: 1 1 auto; justify-content: flex-start; min-width: 0; }
 
-/* the 3 / 30 / 300 numbers live in the title text: quiet, aligned, no pill */
+/* the 3 / 30 / 300 numbers live in the title text: a quiet fixed-width
+   index so 3, 30 and 300 line up, with no verdict colour of their own */
 .rule-n {
   display: inline-block;
-  min-width: 1.9rem;
-  margin-right: var(--ds-size-1);
+  width: 2.5rem;
+  margin-right: var(--ds-size-2);
+  text-align: left;
   font-variant-numeric: tabular-nums;
-  font-weight: var(--ds-font-weight-semibold);
+  font-weight: var(--ds-font-weight-medium);
   color: var(--ds-color-neutral-text-subtle);
 }
-
-/* a passing rule's number lights up with the card */
-.pass .rule-n { color: var(--ds-color-success-base-default); }
 .trees-toggle .ds-label {
   margin: 0;
   font-size: var(--ds-font-size-2);
@@ -92,8 +98,8 @@
 }
 
 .big {
-  font-size: var(--ds-font-size-7);
-  font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-6);
+  font-weight: var(--ds-font-weight-medium);
   line-height: 1.1;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
