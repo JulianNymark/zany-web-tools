@@ -80,17 +80,6 @@
 /* rule 3's checkbox line: plain, compact, label hugs the checkbox */
 .trees-toggle { flex: 1 1 auto; justify-content: flex-start; min-width: 0; }
 
-/* the 3 / 30 / 300 numbers live in the title text: a quiet fixed-width
-   index so 3, 30 and 300 line up, with no verdict colour of their own */
-.rule-n {
-  display: inline-block;
-  width: 2.5rem;
-  margin-right: var(--ds-size-2);
-  text-align: left;
-  font-variant-numeric: tabular-nums;
-  font-weight: var(--ds-font-weight-medium);
-  color: var(--ds-color-neutral-text-subtle);
-}
 .trees-toggle .ds-label {
   margin: 0;
   font-size: var(--ds-font-size-2);
