@@ -120,11 +120,14 @@ body {
 }
 
 .tool-card { display: flex; flex-direction: column; gap: var(--ds-size-3); }
+.tool-card > .ds-card__block { flex: 1 1 auto; } /* block fills the card so tags sit at the bottom edge */
 .tool-card h3 { margin: 0; }
 .tool-card p { margin: 0; }
-.tool-card__spacer { flex: 1 1 auto; }
-.tool-card__meta { display: flex; flex-wrap: wrap; gap: var(--ds-size-2); align-items: center; }
-.tool-card__actions { display: flex; flex-wrap: wrap; gap: var(--ds-size-3); align-items: center; }
+.tool-card__meta { display: flex; flex-wrap: wrap; gap: var(--ds-size-2); align-items: center; margin-top: auto; }
+
+/* whole card is the link; DS gives a.ds-card the hover bg, heading underline
+   and focus ring on its own — we only strip the UA's link colour/underline */
+a.tool-card { color: inherit; text-decoration: none; }
 
 /* ------------------------------------------------------- full-height tools */
 

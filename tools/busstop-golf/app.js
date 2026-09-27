@@ -56,14 +56,28 @@ function routePopup(rank, from, to, line, len) {
     </div>`;
 }
 
+const shortLayer = L.layerGroup().addTo(map);
 DATA.forEach((d, i) => {
-  const pl = L.polyline(d.coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(map);
+  const pl = L.polyline(d.coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(shortLayer);
   pl.on('click', () => select(i));
   lines.push(pl);
   // stop dots: one click handler = one behaviour, identical to clicking the path.
   // (No bound popup: the floating popover is the single source of route info.)
-  L.marker(d.fromPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
-  L.marker(d.toPos, { icon: stopIcon() }).addTo(map).on('click', () => select(i));
+  L.marker(d.fromPos, { icon: stopIcon() }).addTo(shortLayer).on('click', () => select(i));
+  L.marker(d.toPos, { icon: stopIcon() }).addTo(shortLayer).on('click', () => select(i));
+});
+
+// the 30 longest pairs get their own permanent layer, swapped in for the short
+// one when the list is flipped (same view order as buildList's desc branch)
+const longView = PAIRS.slice(-30).reverse();
+const longLayer = L.layerGroup();
+const longLines = longView.map((p, i) => {
+  const coords = p[4];
+  const pl = L.polyline(coords, { color: RUTER_RED, weight: 6, opacity: 0.9 }).addTo(longLayer);
+  pl.on('click', () => select(i));
+  L.marker(coords[0], { icon: stopIcon() }).addTo(longLayer).on('click', () => select(i));
+  L.marker(coords[coords.length - 1], { icon: stopIcon() }).addTo(longLayer).on('click', () => select(i));
+  return pl;
 });
 
 function select(vi) {
@@ -76,12 +90,10 @@ function select(vi) {
     bb = lines[vi].getBounds(); // exact endpoints, no margin
     lines.forEach((pl, j) => pl.setStyle({ weight: j === vi ? 10 : 4, opacity: j === vi ? 1 : 0.3 }));
     content = routePopup(v.rank, v.d.from, v.d.to, v.d.line, v.d.length);
-  } else { // top-30 longest entry: draw it on demand, dim the permanent set
+  } else { // top-30 longest entry: highlight its permanent polyline
     const [a, b, code, len, coords, fn, tn] = v.p;
-    custom.clearLayers();
-    const pl = L.polyline(coords, { color: RUTER_RED, weight: 10, opacity: 0.95 }).addTo(custom);
-    bb = pl.getBounds();
-    lines.forEach((pl) => pl.setStyle({ weight: 4, opacity: 0.15 }));
+    bb = longLines[vi].getBounds(); // exact endpoints, no margin
+    longLines.forEach((pl, j) => pl.setStyle({ weight: j === vi ? 10 : 4, opacity: j === vi ? 1 : 0.3 }));
     content = routePopup(v.rank, fn, tn, code, len);
   }
   fly(() => map.flyToBounds(bb.pad(0.25), { duration: 0.7, maxZoom: 17 }));
@@ -135,7 +147,10 @@ document.getElementById('sortToggle').onclick = (e) => {
   e.currentTarget.setAttribute('aria-pressed', String(desc)); // state via AT, label stays a command
   routePop.close();
   custom.clearLayers();
+  map.removeLayer(desc ? shortLayer : longLayer);
+  (desc ? longLayer : shortLayer).addTo(map); // map shows the paths the list shows
   lines.forEach((pl) => pl.setStyle({ weight: 6, opacity: 0.9 }));
+  longLines.forEach((pl) => pl.setStyle({ weight: 6, opacity: 0.9 }));
   buildList();
 };
 
